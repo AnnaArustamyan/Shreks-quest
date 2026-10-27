@@ -746,15 +746,18 @@
     txt("SHREK'S QUEST", VW / 2 + 2, 12 + bob + 2, OUT, 24, 'center', null);
     txt("SHREK'S QUEST", VW / 2, 12 + bob, PATH[hero].col, 24, 'center', null);
     txt('A LOVE STORY IN 3 LEVELS', VW / 2, 42, '#ffffff', 8, 'center');
-    const hint = !Sound.running() && Math.floor(T * 1.5) % 2 === 0 ? ['TAP OR PRESS A KEY FOR SOUND', '#ffe08a'] : ['< > CHOOSE YOUR PATH', '#ffe08a'];
-    txt(hint[0], VW / 2, 54, hint[1], 8, 'center');
+    txt('< > CHOOSE YOUR PATH', VW / 2, 54, '#ffe08a', 8, 'center');
+    if (!Sound.running()) { // gentle glow in the corner until sound is on
+      ctx.globalAlpha = 0.65 + 0.35 * Math.sin(T * 2.5);
+      txt('♪ TAP FOR SOUND', 8, 210, '#ffe08a');
+      ctx.globalAlpha = 1;
+    }
     drawPathHero(other(hero));
     drawPathHero(hero);
-    const blink = Math.floor(T * 2) % 2 === 0;
     ctx.fillStyle = OUT; ctx.fillRect(150, 199, 100, 20);
     ctx.fillStyle = PATH[hero].dark; ctx.fillRect(151, 200, 98, 18);
     ctx.fillStyle = PATH[hero].col; ctx.fillRect(151, 200, 98, 2);
-    txt('START', VW / 2, 205, blink ? '#ffffff' : PATH[hero].col, 8, 'center');
+    txt('START', VW / 2, 205, '#ffffff', 8, 'center');
   }
 
   function drawPathHero(k) {
