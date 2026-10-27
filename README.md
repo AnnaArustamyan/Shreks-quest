@@ -10,10 +10,10 @@ Choose your path: walk the **Path of the Donkey** or the **Path of the Dragon**.
 |---|---|---|
 | World | sunny swamp, chill lofi beats | lava and castles, intense chiptune |
 | Powers | stomp + **buck kick** (hits both sides) | stomp + **fire breath**, hold jump to **glide** |
-| Treat | **waffles: SUGAR RUSH!** 6 s of speed and big jumps, and anything you touch gets flattened | **gold: DRAGON FURY!** 6 s of rapid triple fireballs |
+| Treat | **waffles: SUGAR RUSH!** 5 s of speed and big jumps, and anything you touch gets flattened | **gold: DRAGON FURY!** 5 s of rapid triple fireballs |
 | Your love | Dragon | Donkey |
 
-Treats also heal a heart.
+Treats are rare (two in each of the first two levels, one in the last) and also heal a heart.
 
 ### Monsters
 | | Path of the Donkey | Path of the Dragon |

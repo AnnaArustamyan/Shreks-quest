@@ -1,6 +1,6 @@
 // Levels are strung together from hand-made chunks (bottom-aligned, 14 rows tall).
 //  # ground   = block   - one-way ledge   ^ hazard (thorns / lava)
-//  F flower   W treat (waffle / gold)     C checkpoint
+//  F flower   W treat spot (waffle / gold; each level keeps only a few)   C checkpoint
 //  e walker   b flyer   s spiky (can't be stomped)
 //  h hopper   g shooter   c charger
 //  M / N / n moving platforms   P start   G your love waits here
@@ -192,13 +192,13 @@ const CHUNKS = {
 const LEVELS = [
   // level 1 introduces hoppers
   { chunks: ['start', 'flat', 'gap2', 'stepsUp', 'enemies1', 'frogPond', 'gap3', 'walls', 'checkpoint', 'platforms', 'frogSteps', 'flyers', 'gap2', 'goal'],
-    speed: 1, need: 0.55, newFoe: 'h' },
+    speed: 1, need: 0.55, newFoe: 'h', treats: 2 },
   // level 2 introduces shooters
   { chunks: ['start', 'enemies1', 'hazard3', 'sniper', 'spiky', 'arcGap', 'flyers', 'frogPond', 'checkpoint', 'bigStairs', 'sniperHigh', 'walls', 'hazardIsland', 'spiky2', 'enemies2', 'goal'],
-    speed: 1.15, need: 0.6, newFoe: 'g' },
+    speed: 1.15, need: 0.6, newFoe: 'g', treats: 2 },
   // level 3 introduces chargers
   { chunks: ['start', 'enemies2', 'boarRun', 'hazard4', 'mover', 'spiky', 'flyers2', 'checkpoint', 'bigStairs', 'sniper', 'gauntletPits', 'mover2', 'boarGap', 'hazardIsland', 'checkpoint', 'gauntlet', 'frogSteps', 'platforms', 'spiky2', 'arcGap', 'goal'],
-    speed: 1.3, need: 0.6, newFoe: 'c' },
+    speed: 1.3, need: 0.6, newFoe: 'c', treats: 1 },
 ];
 
 const LEVEL_NAMES = {

@@ -90,6 +90,12 @@
       }
       off += ch.w;
     }
+    // treats are rare: keep a few, spread evenly across the level
+    if (lv.treats.length > def.treats) {
+      const n = lv.treats.length;
+      lv.treats = Array.from({ length: def.treats }, (_, k) => lv.treats[Math.floor((k + 0.5) * n / def.treats)]);
+      lv.treats.forEach((w, k) => { w.k = k; });
+    }
     lv.cols = off; lv.worldW = off * TS;
     lv.need = Math.max(1, Math.floor(lv.flowers.length * def.need));
     lv.respawn = { ...lv.start };
@@ -164,7 +170,7 @@
   }
 
   // a waffle sugar rush makes Donkey untouchable (pits still count)
-  const POWER_TIME = 6;
+  const POWER_TIME = 5;
   const rushing = () => hero === 'donkey' && P && P.power > 0;
 
   function hurt(fell) {
@@ -921,7 +927,7 @@
     txt(`COLLECT ${L.need} FLOWERS`, VW / 2, 130, '#ffffff', 8, 'center');
     txt(`AND BRING THEM TO ${NAME[other(hero)]}`, VW / 2, 144, '#ffffff', 8, 'center');
     const nk = ENEMY_KIND[hero][LEVELS[levelIdx].newFoe], NE = ENEMY[nk];
-    const label = `NEW FOE: ${NE.name}!`;
+    const label = `${levelIdx === 0 ? 'BEWARE' : 'NEW FOE'}: ${NE.name}!`;
     ctx.font = `8px ${FONT}`;
     const lw = ctx.measureText(label).width, lx = Math.round(VW / 2 - (lw + NE.w * 2 + 8) / 2);
     ctx.save(); ctx.translate(lx, 172 - NE.h * 2 + 8); ctx.scale(2, 2); drawParts(ctx, NE.parts(Math.floor(T * 4) % 2), 0, 0, NE.w, false); ctx.restore();
