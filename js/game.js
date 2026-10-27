@@ -222,7 +222,7 @@
       else {
         const pick = tap.x < 200 ? 'donkey' : 'dragon';
         if (pick === hero) go = true;
-        else { hero = pick; Sound.fx.select(); Sound.play(hero); }
+        else { hero = pick; Sound.fx.select(); Sound.play(hero); if (hero === 'donkey') Sound.fx.heehaw(); else Sound.fx.roar(); }
       }
     }
     if (go && modeT > 0.3) { totalFlowers = 0; totalTreats = 0; startLevel(0); }
@@ -735,40 +735,80 @@
 
   function shade(a, col = '#0b0614') { ctx.globalAlpha = a; ctx.fillStyle = col; ctx.fillRect(0, 0, VW, VH); ctx.globalAlpha = 1; }
 
+  const PATH = {
+    donkey: { x: 26, col: '#7dd87a', dark: '#2e5a34', tag: 'CHILL & KICKS' },
+    dragon: { x: 214, col: '#ff8a3a', dark: '#6a1e1e', tag: 'FIRE & GLIDE' },
+  };
+  const CARD_W = 160, CARD_Y = 70, CARD_H = 110;
+
   function drawTitle() {
     drawBG(hero, T * 20);
     const tl = tiles[hero];
     for (let x = 0; x < VW; x += 16) { ctx.drawImage(tl.top, x, 192); ctx.drawImage(tl.fill, x, 208); }
-    const blurb = hero === 'donkey'
-      ? ['CHILL VIBES. STOMP & BUCK-KICK.', 'LOVES WAFFLES. CRUSHING ON DRAGON.']
-      : ['FIERY! BREATHE FIRE, GLIDE.', 'HOARDS GOLD. CRUSHING ON DONKEY.'];
-    shade(0.35);
-    drawTitleOverlay(blurb);
-  }
-  function drawTitleOverlay(blurb) {
-    // redraw the key bits above the shade so the text is readable
-    const bob = Math.round(Math.sin(T * 2) * 2);
-    txt('PETAL QUEST', VW / 2 + 2, 16 + bob + 2, OUT, 24, 'center', null);
-    txt('PETAL QUEST', VW / 2, 16 + bob, hero === 'donkey' ? '#ff7aa8' : '#ffb02a', 24, 'center', null);
-    txt('A LOVE STORY IN 3 LEVELS', VW / 2, 46, '#ffffff', 8, 'center');
-    [['donkey', 120], ['dragon', 280]].forEach(([k, x]) => {
-      const sel = k === hero;
-      const hop = sel ? Math.round(Math.abs(Math.sin(T * 4)) * 5) : 0;
-      ctx.save(); ctx.translate(x, 192 - hop); ctx.scale(2, 2);
-      if (!sel) ctx.globalAlpha = 0.5;
-      drawHero(ctx, k, 0, 0, k === 'donkey' ? 1 : -1, { walk: sel ? Math.floor(T * 6) % 4 : 0, blink: T % 3 < 0.12 });
-      ctx.restore(); ctx.globalAlpha = 1;
-      txt(NAME[k], x, 116, sel ? '#ffffff' : '#a098a8', 8, 'center');
-      if (sel) { ctx.fillStyle = '#ffffff'; for (let i = 0; i < 4; i++) ctx.fillRect(x - 4 + i, 104 + i + bob, 8 - i * 2, 1); }
-    });
-    txt(blurb[0], VW / 2, 64, '#ffffff', 8, 'center');
-    txt(blurb[1], VW / 2, 76, '#ffffff', 8, 'center');
+    shade(0.45);
+    const bob = Math.round(Math.sin(T * 2) * 2), titleCol = hero === 'donkey' ? '#a6e49a' : '#ffb02a';
+    txt("SHREK'S QUEST", VW / 2 + 2, 12 + bob + 2, OUT, 24, 'center', null);
+    txt("SHREK'S QUEST", VW / 2, 12 + bob, titleCol, 24, 'center', null);
+    txt('A LOVE STORY IN 3 LEVELS', VW / 2, 42, '#ffffff', 8, 'center');
+    txt('CHOOSE YOUR PATH', VW / 2, 56, '#ffe08a', 8, 'center');
+    drawPathCard('donkey');
+    drawPathCard('dragon');
+
+    const hint = !Sound.running() && Math.floor(T * 1.5) % 2 === 0 ? ['TAP OR PRESS A KEY FOR SOUND', '#ffe08a'] : ['< > PICK PATH    SPACE START', '#d0c8d8'];
+    txt(hint[0], VW / 2, 184, hint[1], 8, 'center');
     const blink = Math.floor(T * 2) % 2 === 0;
-    ctx.fillStyle = OUT; ctx.fillRect(150, 196, 100, 20);
-    ctx.fillStyle = hero === 'donkey' ? '#5cb85c' : '#e0405a'; ctx.fillRect(151, 197, 98, 18);
-    txt('START', VW / 2, 202, blink ? '#ffffff' : '#ffe8f0', 8, 'center');
-    txt('< > PICK   SPACE START', VW / 2, 92, '#d0c8d8', 8, 'center');
-    if (!Sound.running() && Math.floor(T * 1.5) % 2 === 0) txt('TAP OR PRESS A KEY FOR SOUND', VW / 2, 182, '#ffe08a', 8, 'center');
+    ctx.fillStyle = OUT; ctx.fillRect(140, 196, 120, 20);
+    ctx.fillStyle = PATH[hero].dark; ctx.fillRect(141, 197, 118, 18);
+    ctx.fillStyle = PATH[hero].col; ctx.fillRect(141, 197, 118, 2);
+    txt('START', VW / 2, 202, blink ? '#ffffff' : PATH[hero].col, 8, 'center');
+  }
+
+  function drawPathCard(k) {
+    const c = PATH[k], sel = k === hero, x = c.x, y = CARD_Y, cx = x + CARD_W / 2;
+    // panel
+    ctx.globalAlpha = sel ? 0.92 : 0.7;
+    ctx.fillStyle = sel ? c.dark : '#120c1c';
+    ctx.fillRect(x, y, CARD_W, CARD_H);
+    ctx.globalAlpha = 1;
+    if (sel) {
+      // pulsing double frame in the path's colour
+      const pulse = Math.floor(T * 4) % 2 === 0;
+      ctx.fillStyle = pulse ? c.col : '#ffffff';
+      ctx.fillRect(x - 3, y - 3, CARD_W + 6, 2); ctx.fillRect(x - 3, y + CARD_H + 1, CARD_W + 6, 2);
+      ctx.fillRect(x - 3, y - 3, 2, CARD_H + 6); ctx.fillRect(x + CARD_W + 1, y - 3, 2, CARD_H + 6);
+      ctx.fillStyle = pulse ? '#ffffff' : c.col;
+      ctx.fillRect(x, y, CARD_W, 1); ctx.fillRect(x, y + CARD_H - 1, CARD_W, 1); ctx.fillRect(x, y, 1, CARD_H); ctx.fillRect(x + CARD_W - 1, y, 1, CARD_H);
+      // sparkles in the corners
+      [[x + 6, y + 6], [x + CARD_W - 8, y + 6], [x + 6, y + CARD_H - 8], [x + CARD_W - 8, y + CARD_H - 8]].forEach(([sx, sy], i) => {
+        if (Math.floor(T * 3 + i) % 3 === 0) return;
+        ctx.fillStyle = '#ffffff'; ctx.fillRect(sx, sy - 1, 1, 3); ctx.fillRect(sx - 1, sy, 3, 1);
+      });
+      // bouncing arrow above
+      const ab = Math.round(Math.abs(Math.sin(T * 5)) * 3);
+      ctx.fillStyle = OUT; for (let i = 0; i < 6; i++) ctx.fillRect(cx - 6 + i, y - 12 + i + ab, 13 - i * 2, 1);
+      ctx.fillStyle = '#ffffff'; for (let i = 0; i < 5; i++) ctx.fillRect(cx - 5 + i, y - 12 + i + ab, 11 - i * 2, 1);
+    } else {
+      ctx.fillStyle = '#4a4058';
+      ctx.fillRect(x, y, CARD_W, 1); ctx.fillRect(x, y + CARD_H - 1, CARD_W, 1); ctx.fillRect(x, y, 1, CARD_H); ctx.fillRect(x + CARD_W - 1, y, 1, CARD_H);
+    }
+    txt('PATH OF THE', cx, y + 7, sel ? '#ffffff' : '#7a7088', 8, 'center');
+    txt(NAME[k], cx, y + 19, sel ? c.col : '#6a6078', 16, 'center');
+
+    // the hero on a little patch of ground: lit and walking when chosen, a dim shadow otherwise
+    const feet = y + 86;
+    ctx.fillStyle = sel ? 'rgba(255,255,255,.12)' : 'rgba(0,0,0,.25)';
+    ctx.fillRect(cx - 34, feet, 68, 3);
+    if (sel) { // soft glow behind the hero
+      ctx.globalAlpha = 0.18 + 0.08 * Math.sin(T * 4);
+      pcircle(ctx, cx, feet - 24, 30, c.col);
+      ctx.globalAlpha = 1;
+    }
+    const hop = sel ? Math.round(Math.abs(Math.sin(T * 4)) * 4) : 0;
+    ctx.save(); ctx.translate(cx, feet - hop); ctx.scale(2, 2);
+    if (!sel) ctx.globalAlpha = 0.35;
+    drawHero(ctx, k, 0, 0, k === 'donkey' ? 1 : -1, { walk: sel ? Math.floor(T * 6) % 4 : 0, blink: sel ? T % 3 < 0.12 : true });
+    ctx.restore(); ctx.globalAlpha = 1;
+    txt(c.tag, cx, y + 94, sel ? '#ffffff' : '#5a5068', 8, 'center');
   }
 
   function drawIntro() {
@@ -893,5 +933,5 @@
   setTimeout(boot, 2500);
   requestAnimationFrame(frame);
 
-  window.PetalQuest = { get mode() { return mode; }, get level() { return L; }, get player() { return P; }, startLevel, startWedding };
+  window.ShreksQuest = window.PetalQuest = { get mode() { return mode; }, get level() { return L; }, get player() { return P; }, startLevel, startWedding };
 })();
