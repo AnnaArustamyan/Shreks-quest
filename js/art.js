@@ -258,3 +258,28 @@ function drawPeekingOgre(g, x, y, look, blink, grin, scale = 3) {
   drawParts(g, ogreFaceParts(look, blink, grin), 0, 0, 40, false);
   g.restore();
 }
+
+// ---------- the ogre standing front-on, officiating with a little book ----------
+function ogreStandParts(talk, blink) {
+  const P = [
+    // trumpet ears
+    [2, 6, 3, 2, OG.skin], [0, 4, 2, 6, OG.skinD], [19, 6, 3, 2, OG.skin], [22, 4, 2, 6, OG.skinD],
+    // head
+    [6, 0, 12, 1, OG.skin], [5, 1, 14, 12, OG.skin], [6, 13, 12, 1, OG.skin],
+    [7, 1, 3, 1, OG.skinL, 1],
+    [7, 4, 4, 1, OG.brow, 1], [13, 4, 4, 1, OG.brow, 1],
+    [11, 7, 2, 3, OG.skinL, 1], [11, 9, 2, 1, OG.skinD, 1],
+    // legs and boots
+    [6, 24, 5, 6, '#7a5a32'], [13, 24, 5, 6, '#7a5a32'], [5, 29, 6, 3, '#3e2a1a'], [13, 29, 6, 3, '#3e2a1a'],
+    // shirt, vest, belt
+    [4, 14, 16, 11, '#eadfb4'], [4, 14, 4, 10, '#5a3a1e', 1], [16, 14, 4, 10, '#5a3a1e', 1], [4, 22, 16, 2, '#3e2a1a', 1],
+    // sleeves + hands holding the book
+    [2, 15, 3, 6, '#eadfb4'], [19, 15, 3, 6, '#eadfb4'],
+    [8, 16, 8, 6, '#7a2a1a'], [9, 17, 6, 4, '#f4ecd2', 1], [12, 17, 1, 4, '#c8b890', 1],
+    [5, 18, 3, 3, OG.skin], [16, 18, 3, 3, OG.skin],
+  ];
+  if (blink) P.push([8, 6, 2, 1, '#2a2a10', 1], [14, 6, 2, 1, '#2a2a10', 1]);
+  else P.push([8, 5, 2, 2, '#ffffff', 1], [9, 5, 1, 2, OG.iris, 1], [14, 5, 2, 2, '#ffffff', 1], [14, 5, 1, 2, OG.iris, 1]);
+  P.push(talk ? [9, 10, 6, 2, '#5a2a1a', 1] : [9, 11, 6, 1, '#3e4e14', 1], [8, 10, 1, 1, '#3e4e14', 1], [15, 10, 1, 1, '#3e4e14', 1]);
+  return P;
+}

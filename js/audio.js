@@ -3,6 +3,7 @@ const Sound = (() => {
   let ac = null, master = null, sfxBus = null, musicBus = null, noiseBuf = null;
   let muted = false, wantSong = null, song = null, step = 0, nextT = 0, timer = null;
   const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
+  const rand = (a, b) => a + Math.random() * (b - a);
 
   let unlockEl = null;
   // iPhones mute Web Audio when the silent switch is on, unless the page is
@@ -224,6 +225,15 @@ const Sound = (() => {
         tone({ type: 'sawtooth', f: 620, f2: 900, t: t + k * 0.6, dur: 0.25, vol: 0.06, lp: 1800 });
         tone({ type: 'sawtooth', f: 520, f2: 290, t: t + k * 0.6 + 0.27, dur: 0.3, vol: 0.07, lp: 1400 });
       }
+    },
+    talk() { // low ogre mumble
+      const t = now();
+      for (let i = 0; i < 6; i++) tone({ type: 'square', f: rand(95, 150), t: t + i * 0.11, dur: 0.08, vol: 0.05, lp: 700 });
+    },
+    cheer() { // crowd roar + happy squeaks
+      const t = now();
+      noise({ t, dur: 1.6, vol: 0.12, type: 'bandpass', freq: 900, q: 0.6 });
+      for (let i = 0; i < 12; i++) tone({ type: 'triangle', f: rand(500, 1100), f2: rand(900, 1600), t: t + rand(0, 1.2), dur: 0.15, vol: 0.04 });
     },
     sob() {
       const t = now();

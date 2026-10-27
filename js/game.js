@@ -180,7 +180,7 @@
 
   function startWedding() {
     mode = 'wedding'; modeT = 0; parts = []; floaters = [];
-    W = { said: 0, kissed: false, fw: 0, shells: [] };
+    W = { line: -1, kissed: false, fw: 0, shells: [], flash: 0 };
     Sound.play('wedding');
   }
 
@@ -435,24 +435,56 @@
     floaters = floaters.filter(f => f.life > 0);
   }
 
+  // wedding timeline (seconds)
+  const WED = { kiss: 11.4, banner: 12.2, stats: 13.4, done: 15 };
+  const GUESTS = [
+    { k: 'beetle', x: 14, row: 0 }, { k: 'hedgehog', x: 40, row: 0 }, { k: 'knight', x: 70, row: 0 }, { k: 'bee', x: 100, row: 0 },
+    { k: 'bat', x: 26, row: 1 }, { k: 'pikeman', x: 56, row: 1 }, { k: 'beetle', x: 88, row: 1 },
+    { k: 'bee', x: 290, row: 0 }, { k: 'knight', x: 318, row: 0 }, { k: 'hedgehog', x: 346, row: 0 }, { k: 'beetle', x: 374, row: 0 },
+    { k: 'hedgehog', x: 300, row: 1 }, { k: 'bat', x: 330, row: 1 }, { k: 'pikeman', x: 360, row: 1 },
+  ];
+  function wedLines() {
+    const first = hero, second = other(hero);
+    const vow = { donkey: 'HECK YEAH, I DO!', dragon: '*ROOOAR* I DO!' };
+    return [
+      { from: 3.6, to: 5.4, who: 'ogre', text: 'DEARLY BELOVED...' },
+      { from: 5.4, to: 7.2, who: 'ogre', text: 'DO YOU TAKE EACH OTHER?' },
+      { from: 7.2, to: 8.6, who: first, text: vow[first] },
+      { from: 8.6, to: 10, who: second, text: vow[second] },
+      { from: 10, to: WED.kiss, who: 'ogre', text: 'YOU MAY NOW KISS!' },
+    ];
+  }
+
   function updateWedding(dt) {
+    // jump skips straight to the kiss
+    if (modeT > 0.5 && modeT < WED.kiss - 0.6 && anyGo()) modeT = WED.kiss - 0.6;
     const t = modeT;
-    if (t > 6 && !W.kissed) {
-      W.kissed = true; Sound.fx.bells();
-      heartBurst(200, 110, ['#ff4a6a', '#ff8aa8', '#ffffff'], 5);
+    const lines = wedLines(), li = lines.findIndex(l => t >= l.from && t < l.to);
+    if (li !== W.line) {
+      W.line = li;
+      if (li >= 0) {
+        const w = lines[li].who;
+        if (w === 'ogre') Sound.fx.talk(); else if (w === 'donkey') Sound.fx.heehaw(); else Sound.fx.roar();
+      }
     }
-    if (t > 6) for (let i = 0; i < 2; i++) {
+    if (t > WED.kiss && !W.kissed) {
+      W.kissed = true; W.flash = 1;
+      Sound.fx.bells(); Sound.fx.cheer();
+      heartBurst(200, 145, ['#ff4a6a', '#ff8aa8', '#ffffff'], 5);
+      for (const gu of GUESTS) burst(gu.x + 6, 160 + gu.row * 10, ['#ff7aa8', '#ffd34d', '#ffffff', '#8ab8ff'], 6, 90, 120, 1.2);
+    }
+    if (W.flash > 0) W.flash -= dt * 2;
+    if (t > WED.kiss) for (let i = 0; i < 2; i++) {
       parts.push({ x: rand(0, VW), y: -4, vx: rand(-15, 15), vy: rand(25, 55), g: 8, life: 5, max: 5,
         col: ['#ff7aa8', '#ffd34d', '#8ab8ff', '#ffffff', '#c78aff', '#7dff8a'][(Math.random() * 6) | 0], s: 2 });
     }
     if (Math.random() < 0.15) parts.push({ x: rand(0, VW), y: -4, vx: rand(5, 20), vy: rand(15, 30), g: 0, life: 9, max: 9, col: '#ffb8d0', s: 2 });
-    if (t > 6.8) {
+    if (t > WED.kiss + 0.8) {
       W.fw -= dt;
       if (W.fw <= 0) {
-        W.fw = 0.8;
-        W.breath = 0.35;
+        W.fw = 0.9; W.breath = 0.35;
         Sound.fx.fire();
-        W.shells.push({ x: 224, y: 140, tx: rand(60, 340), ty: rand(25, 75), t: 0 });
+        W.shells.push({ x: W.rx - 20, y: 152, tx: rand(40, 360), ty: rand(50, 100), t: 0 });
       }
     }
     if (W.breath > 0) W.breath -= dt;
@@ -467,7 +499,7 @@
       }
     }
     W.shells = W.shells.filter(s => !s.done);
-    if (t > 10 && anyGo()) { mode = 'title'; modeT = 0; Sound.play(hero); }
+    if (t > WED.done && anyGo()) { mode = 'title'; modeT = 0; Sound.play(hero); }
   }
 
   // ---------- drawing helpers ----------
@@ -836,6 +868,11 @@
     hills(0, 180, 6, '#5a8a5a', 6, 0);
     const tl = tiles.donkey;
     for (let x = 0; x < VW; x += 16) { ctx.drawImage(tl.top, x, 190); ctx.drawImage(tl.fill, x, 206); ctx.drawImage(tl.fill, x, 222); }
+    // red carpet with scattered petals
+    ctx.fillStyle = '#8a1a2a'; ctx.fillRect(0, 191, VW, 6); ctx.fillStyle = '#c4303e'; ctx.fillRect(0, 191, VW, 4);
+    ctx.fillStyle = '#ffd34d'; ctx.fillRect(0, 191, VW, 1);
+    for (let i = 0; i < 26; i++) { ctx.fillStyle = ['#ff8aa8', '#ffffff', '#ffd34d'][i % 3]; ctx.fillRect(Math.round(hash(i) * VW), 192 + (i % 3), 2, 1); }
+
     // flower arch
     ctx.fillStyle = OUT; ctx.fillRect(135, 98, 10, 93); ctx.fillRect(255, 98, 10, 93);
     ctx.fillStyle = '#f2e6d0'; ctx.fillRect(136, 98, 8, 92); ctx.fillRect(256, 98, 8, 92);
@@ -846,36 +883,99 @@
     }
     for (let y = 110; y < 186; y += 14) { pcircle(ctx, 140, y, 3, fc[(y / 14) % 5 | 0]); pcircle(ctx, 260, y + 7, 3, fc[((y / 14) + 2) % 5 | 0]); }
 
+    // the officiant on a little step
+    ctx.fillStyle = OUT; ctx.fillRect(173, 165, 54, 26); ctx.fillStyle = '#9a8e80'; ctx.fillRect(174, 166, 52, 24); ctx.fillStyle = '#c4b8a8'; ctx.fillRect(174, 166, 52, 2);
+    ctx.fillStyle = '#7a7064'; ctx.fillRect(174, 177, 52, 1); ctx.fillRect(190, 167, 1, 10); ctx.fillRect(208, 178, 1, 12);
+    const lines = wedLines(), cur = lines.find(l => t >= l.from && t < l.to);
+    const ogreTalk = cur && cur.who === 'ogre' && Math.floor(t * 8) % 2 === 0;
+    ctx.save(); ctx.translate(176, 101); ctx.scale(2, 2);
+    drawParts(ctx, ogreStandParts(ogreTalk, (t + 0.5) % 3.1 < 0.12), 0, 0, 24, false);
+    ctx.restore();
+
+    // guests: everyone you met on the way came to celebrate
+    const party = t > WED.kiss;
+    for (const row of [0, 1]) {
+      const by = row ? 186 : 176;
+      for (const side of [0, 1]) { // benches
+        const x0 = side ? 284 : 8, x1 = side ? 392 : 116;
+        ctx.fillStyle = OUT; ctx.fillRect(x0 - 1, by - 1, x1 - x0 + 2, 5);
+        ctx.fillStyle = '#a06a3e'; ctx.fillRect(x0, by, x1 - x0, 3); ctx.fillStyle = '#c88a50'; ctx.fillRect(x0, by, x1 - x0, 1);
+        ctx.fillStyle = '#6e4426'; ctx.fillRect(x0 + 4, by + 3, 2, 190 - by - 3); ctx.fillRect(x1 - 6, by + 3, 2, 190 - by - 3);
+      }
+      GUESTS.forEach((gu, i) => {
+        if (gu.row !== row) return;
+        const E = ENEMY[gu.k], f = Math.floor(t * (E.fly ? 8 : 3) + i) % 2;
+        const hop = party ? Math.round(Math.abs(Math.sin(t * 7 + i)) * 7) : Math.round(Math.max(0, Math.sin(t * 2 + i * 1.7)) * 1.5);
+        const fly = E.fly ? 8 + Math.round(Math.sin(t * 3 + i) * 2) : 0;
+        drawParts(ctx, E.parts(f), gu.x, by - E.h - hop - fly, E.w, gu.x > 200);
+      });
+    }
+
     // the couple: donkey from the left, dragon from the right
-    const walkK = Math.min(1, t / 3), e = 1 - Math.pow(1 - walkK, 2);
-    const close = t > 6 ? Math.min(1, (t - 6) * 2) * 12 : 0;
-    const dx = -40 + (165 - -40) * e + close, rx = 440 + (235 - 440) * e - close;
-    const walking = t < 3;
+    const walkK = Math.min(1, t / 3.5), e = 1 - Math.pow(1 - walkK, 2);
+    const close = t > WED.kiss - 0.3 ? Math.min(1, (t - WED.kiss + 0.3) * 3) * 14 : 0;
+    const dx = -40 + (158 + 40) * e + close, rx = 440 - (440 - 242) * e - close;
+    W.rx = rx;
+    const walking = t < 3.5;
     const drawBig = (k, x, face, st) => { ctx.save(); ctx.translate(Math.round(x), 190); ctx.scale(2, 2); drawHero(ctx, k, 0, 0, face, st); ctx.restore(); };
-    drawBig('donkey', dx, 1, { walk: walking ? Math.floor(t * 8) % 4 : 0, blink: t % 3 < 0.12 });
-    drawBig('dragon', rx, -1, { walk: walking ? Math.floor(t * 8) % 4 : 0, blink: (t + 1) % 3.4 < 0.12, act: W.breath > 0 });
-    // donkey's bow tie, dragon's veil
+    const kissing = t > WED.kiss - 0.1 && t < WED.kiss + 1.2;
+    drawBig('donkey', dx, 1, { walk: walking ? Math.floor(t * 8) % 4 : 0, blink: kissing || t % 3 < 0.12 });
+    drawBig('dragon', rx, -1, { walk: walking ? Math.floor(t * 8) % 4 : 0, blink: kissing || (t + 1) % 3.4 < 0.12, act: W.breath > 0 });
+    // donkey's bow tie, dragon's veil and bouquet
     ctx.fillStyle = OUT; ctx.fillRect(Math.round(dx) + 10, 154, 10, 6); ctx.fillStyle = '#e0405a'; ctx.fillRect(Math.round(dx) + 11, 155, 3, 4); ctx.fillRect(Math.round(dx) + 16, 155, 3, 4); ctx.fillStyle = '#ffd34d'; ctx.fillRect(Math.round(dx) + 14, 156, 2, 2);
     ctx.globalAlpha = 0.85; ctx.fillStyle = '#ffffff'; ctx.fillRect(Math.round(rx) - 6, 146, 14, 4); ctx.fillRect(Math.round(rx) + 4, 148, 8, 22); ctx.globalAlpha = 1;
     pcircle(ctx, Math.round(rx) - 2, 147, 2, '#ff7aa8');
+    const bqx = Math.round(rx) - 16, bqy = 170;
+    ctx.fillStyle = '#3e8a44'; ctx.fillRect(bqx, bqy, 2, 6);
+    pcircle(ctx, bqx - 2, bqy - 2, 2, '#ff7aa8'); pcircle(ctx, bqx + 3, bqy - 2, 2, '#ffd34d'); pcircle(ctx, bqx, bqy - 4, 2, '#ffffff');
 
-    const lines = { donkey: 'HECK YEAH, I DO!', dragon: '*ROOOAR* I DO!' };
-    const first = hero, second = other(hero);
-    const pos = { donkey: dx + 6, dragon: rx - 6 };
-    if (t > 3.2 && t < 4.8) speech(pos[first], 136, lines[first]);
-    if (t > 4.8 && t < 6.2) speech(pos[second], 136, lines[second]);
-    if (t > 6) { const s = Math.min(3, 1 + (t - 6) * 3) + Math.sin(t * 6) * 0.2; heart(ctx, Math.round(200 - 3.5 * s * 1.4), Math.round(110 - 3 * s * 1.4), '#ff4a6a', Math.round(s * 1.4)); }
+    // speech
+    if (cur) {
+      const pos = { ogre: [200, 100], donkey: [dx + 6, 138], dragon: [rx - 6, 138] }[cur.who];
+      speech(pos[0], pos[1], cur.text);
+    }
+    if (t > WED.kiss - 0.1) {
+      const s = Math.min(2, 1 + (t - WED.kiss) * 3);
+      heart(ctx, Math.round(200 - 3.5 * s), Math.round(150 - 3 * s - Math.max(0, Math.sin(t * 4)) * 2), '#ff4a6a', Math.round(s));
+    }
 
     for (const q of parts) { ctx.globalAlpha = clamp(q.life / q.max * 1.5, 0, 1); ctx.fillStyle = q.col; ctx.fillRect(Math.round(q.x), Math.round(q.y), q.s, q.s); }
     ctx.globalAlpha = 1;
+    if (W.flash > 0) shade(W.flash * 0.55, '#ffffff');
 
-    if (t > 7.5) {
-      const by = 14 + Math.round(Math.sin(t * 3) * 2);
-      txt('JUST MARRIED!', VW / 2 + 2, by + 2, OUT, 24, 'center', null);
-      txt('JUST MARRIED!', VW / 2, by, '#ffd34d', 24, 'center', null);
+    // "JUST MARRIED" ribbon banner drops in
+    if (t > WED.banner) {
+      const k = Math.min(1, (t - WED.banner) / 0.7), drop = 1 - Math.pow(1 - k, 3) + Math.sin(k * Math.PI) * 0.08;
+      const by = Math.round(-40 + 46 * drop) + Math.round(Math.sin(t * 2) * 1);
+      ctx.fillStyle = '#e8dcc0'; ctx.fillRect(100, 0, 1, by + 2); ctx.fillRect(299, 0, 1, by + 2);
+      // swallowtail ribbon ends behind the banner
+      const tail = (x0, dir) => {
+        for (let r = 0; r < 18; r++) {
+          const notch = 8 - Math.abs(r - 8.5) | 0; // V cut into the outer end
+          const w = 24 - Math.max(0, notch);
+          ctx.fillStyle = OUT; ctx.fillRect(dir > 0 ? x0 : x0 - w, by + 5 + r, w, 1);
+          if (r > 0 && r < 17) { ctx.fillStyle = r < 4 ? '#e0405a' : '#9a1e2a'; ctx.fillRect(dir > 0 ? x0 + 1 : x0 - w + 1, by + 5 + r, w - 2, 1); }
+        }
+      };
+      tail(91, -1); tail(309, 1);
+      ctx.fillStyle = OUT; ctx.fillRect(83, by - 1, 234, 28);
+      ctx.fillStyle = '#fff6e0'; ctx.fillRect(84, by, 232, 26);
+      ctx.fillStyle = '#ffd34d'; ctx.fillRect(84, by, 232, 2); ctx.fillRect(84, by + 24, 232, 2);
+      txt('JUST MARRIED!', VW / 2, by + 6, '#e0405a', 16, 'center', null);
+      heart(ctx, 88, by + 10, '#ff4a6a', 1, false); heart(ctx, 305, by + 10, '#ff4a6a', 1, false);
     }
-    if (t > 8.5) txt(`${totalFlowers} FLOWERS   ${totalTreats} ${THEMES[hero].treat}`, VW / 2, 46, '#ffffff', 8, 'center');
-    if (t > 10 && Math.floor(T * 2) % 2 === 0) txt('PRESS JUMP TO PLAY AGAIN', VW / 2, 60, '#ffffff', 8, 'center');
+    if (t > WED.stats) {
+      ctx.globalAlpha = Math.min(1, (t - WED.stats) * 2);
+      txt(`${totalFlowers} FLOWERS   ${totalTreats} ${THEMES[hero].treat}   THE END`, VW / 2, 40, '#ffffff', 8, 'center');
+      ctx.globalAlpha = 1;
+    }
+    if (t > WED.done) {
+      ctx.globalAlpha = 0.7 + 0.3 * Math.sin(T * 2.5);
+      txt('PRESS JUMP TO PLAY AGAIN', VW / 2, 52, '#ffe08a', 8, 'center');
+      ctx.globalAlpha = 1;
+    } else if (t < WED.kiss - 0.6 && t > 1) {
+      ctx.globalAlpha = 0.55; txt('JUMP: SKIP', VW - 6, VH - 12, '#ffffff', 8, 'right'); ctx.globalAlpha = 1;
+    }
   }
 
   function render() {
