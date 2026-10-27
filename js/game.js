@@ -498,13 +498,16 @@
     return wx => Math.round(base - (Math.sin(wx * 0.012 + seed) * amp + Math.sin(wx * 0.031 + seed * 2) * amp * 0.4));
   }
 
-  // passes overhead every 22s, with a little parallax and a bob
-  function drawFlyingOgre(cx) {
-    const k = ((T + 19) % 22) / 9;
-    if (k > 1) return;
-    const x = -140 + k * (VW + 180) - cx * 0.04, y = 26 + Math.sin(T * 1.6) * 6 + k * 10;
-    drawOgre(ctx, x, y, Math.floor(T * 5) % 2);
-    for (let i = 1; i < 6; i++) { ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.fillRect(Math.round(x - i * 12), Math.round(y + 24 + Math.sin(T * 6 + i) * 3), 8, 1); }
+  // every 20s a big ogre sneaks a peek from the top of the screen, then ducks away
+  function drawPeekingOgre_(cx) {
+    const cyc = Math.floor((T + 16) / 20), t = (T + 16) % 20;
+    if (t > 7) return;
+    const k = t < 0.9 ? 1 - Math.pow(1 - t / 0.9, 3) : t > 6.1 ? Math.pow(1 - (t - 6.1) / 0.9, 2) : 1;
+    const x = 120 + hash(cyc) * (VW - 280), y = -108 + k * 78; // top of the head stays off-screen
+    const look = t < 2.4 ? -1 : t < 3.9 ? 1 : 0;
+    const blink = (t > 2.3 && t < 2.45) || (t > 4.2 && t < 4.35);
+    const grin = t > 4.6 ? Math.min(1, (t - 4.6) * 2) : 0;
+    drawPeekingOgre(ctx, x - cx * 0.02, y, look, blink, grin);
   }
 
   function drawBG(theme, cx) {
@@ -515,7 +518,7 @@
         const span = VW + 160, x = ((i * 97 + T * 5 - cx * 0.1) % span + span) % span - 80, y = 22 + (i * 37) % 60;
         pcircle(ctx, x, y + 3, 9, '#e2f2f2'); pcircle(ctx, x + 12, y, 12, '#ffffff'); pcircle(ctx, x + 26, y + 3, 9, '#ffffff'); ctx.fillStyle = '#e2f2f2'; ctx.fillRect(x - 6, y + 9, 40, 3);
       }
-      drawFlyingOgre(cx);
+      drawPeekingOgre_(cx);
       hills(0.15, 150, 16, '#a8d494', 1, cx);
       const near = hills(0.35, 172, 12, '#74b26c', 4, cx);
       const sp = 70, off = cx * 0.35;
@@ -536,7 +539,7 @@
     } else {
       bands(['#1a0610', '#2a0814', '#45101c', '#6a1820', '#94261c', '#c4401a'], 0, 175);
       pcircle(ctx, 90, 62, 26, '#a8381a'); pcircle(ctx, 90, 62, 20, '#ff8a3a');
-      drawFlyingOgre(cx);
+      drawPeekingOgre_(cx);
       // volcanoes
       const vsp = 260, voff = cx * 0.1;
       for (let wx = Math.floor(voff / vsp) * vsp - vsp; wx < voff + VW + vsp; wx += vsp) {
@@ -689,13 +692,16 @@
   }
 
   function drawGoalSign(x, y) {
-    const ok = L.got >= L.need;
+    const ok = L.got >= L.need, label = String(L.need);
+    ctx.font = `8px ${FONT}`;
+    const bw = 18 + Math.ceil(ctx.measureText(label).width) + 4; // flower icon + number + padding
     x = Math.round(x);
+    const bx = x + 13 - Math.round(bw / 2);
     ctx.fillStyle = OUT; ctx.fillRect(x + 11, y - 18, 4, 18); ctx.fillStyle = '#8a5a30'; ctx.fillRect(x + 12, y - 18, 2, 18);
-    ctx.fillStyle = OUT; ctx.fillRect(x - 1, y - 33, 28, 17);
-    ctx.fillStyle = ok ? '#5cb85c' : '#e8d8b0'; ctx.fillRect(x, y - 32, 26, 15);
-    drawParts(ctx, [[3, 0, 4, 2, '#ff7aa8'], [1, 2, 8, 4, '#ff7aa8'], [3, 6, 4, 2, '#ff7aa8'], [4, 3, 2, 2, '#ffd34d', 1]], x + 2, y - 29, 10, false);
-    txt(String(L.need), x + 13, y - 28, ok ? '#ffffff' : OUT, 8, 'left', null);
+    ctx.fillStyle = OUT; ctx.fillRect(bx - 1, y - 33, bw + 2, 17);
+    ctx.fillStyle = ok ? '#5cb85c' : '#e8d8b0'; ctx.fillRect(bx, y - 32, bw, 15);
+    drawParts(ctx, [[3, 0, 4, 2, '#ff7aa8'], [1, 2, 8, 4, '#ff7aa8'], [3, 6, 4, 2, '#ff7aa8'], [4, 3, 2, 2, '#ffd34d', 1]], bx + 3, y - 29, 10, false);
+    txt(label, bx + 16, y - 28, ok ? '#ffffff' : OUT, 8, 'left', null);
   }
 
   function drawBouquet(x, y, few) {
@@ -718,7 +724,7 @@
     drawParts(ctx, [[3, 0, 4, 2, '#ff7aa8'], [1, 2, 8, 4, '#ff7aa8'], [3, 6, 4, 2, '#ff7aa8'], [4, 3, 2, 2, '#ffd34d', 1]], 6, 17, 10, false);
     txt(`${L.got}/${L.need}`, 20, 18, L.got >= L.need ? '#7dff8a' : '#ffffff');
     if (L.treatsGot) txt(`${THEMES[hero].treat} ${L.treatsGot}`, 6, 30, '#ffd34d');
-    txt(`LEVEL ${levelIdx + 1}`, VW / 2, 6, '#ffffff', 8, 'center');
+    txt(`LV${levelIdx + 1}`, 42, 6, '#ffffff');
     if (mode === 'play' && modeT < 5) {
       const h = hero === 'donkey' ? 'X / B: BUCK KICK!  STOMP BUGS' : 'X / B: FIRE!  HOLD JUMP: GLIDE';
       txt(h, VW / 2, VH - 14, '#ffffff', 8, 'center');

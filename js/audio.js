@@ -1,7 +1,7 @@
 // Tiny WebAudio synth: all music and sound effects are generated, no audio files.
 const Sound = (() => {
-  let ac = null, master = null, sfxBus = null, musicBus = null, noiseBuf = null, crackleBuf = null;
-  let muted = false, wantSong = null, song = null, step = 0, nextT = 0, timer = null, crackle = null;
+  let ac = null, master = null, sfxBus = null, musicBus = null, noiseBuf = null;
+  let muted = false, wantSong = null, song = null, step = 0, nextT = 0, timer = null;
   const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
 
   let unlockEl = null;
@@ -41,12 +41,6 @@ const Sound = (() => {
     noiseBuf = ac.createBuffer(1, ac.sampleRate, ac.sampleRate);
     const d = noiseBuf.getChannelData(0);
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-    // vinyl crackle: near-silence with sparse pops
-    crackleBuf = ac.createBuffer(1, ac.sampleRate * 2, ac.sampleRate);
-    const c = crackleBuf.getChannelData(0);
-    for (let i = 0; i < c.length; i++) {
-      c[i] = Math.random() < 0.0007 ? (Math.random() * 2 - 1) * (Math.random() < 0.15 ? 0.9 : 0.35) : (Math.random() * 2 - 1) * 0.008;
-    }
     if (wantSong) play(wantSong, true);
   }
 
@@ -108,9 +102,9 @@ const Sound = (() => {
   ];
 
   const SONGS = {
-    // chill lofi: jazzy 7th chords, swung soft drums, vinyl crackle
+    // chill lofi: jazzy 7th chords, swung soft drums
     donkey: {
-      bpm: 78, swing: 0.3, crackle: true,
+      bpm: 78, swing: 0.3,
       step(i, t, sd, d) {
         const bar = (i >> 4) % 4, s = i % 16;
         const ch = [[53, 57, 60, 64], [52, 55, 59, 62], [50, 53, 57, 60], [48, 52, 55, 59]][bar];
@@ -193,7 +187,6 @@ const Sound = (() => {
       setTimeout(() => old.disconnect(), 800);
       musicBus = null;
     }
-    if (crackle) { try { crackle.stop(); } catch (e) {} crackle = null; }
   }
 
   function play(name, force) {
@@ -205,12 +198,6 @@ const Sound = (() => {
     musicBus = ac.createGain(); musicBus.gain.value = 0.55; musicBus.connect(master);
     step = 0; nextT = ac.currentTime + 0.1;
     timer = setInterval(schedule, 25);
-    if (song.crackle) {
-      crackle = ac.createBufferSource(); crackle.buffer = crackleBuf; crackle.loop = true;
-      const g = ac.createGain(); g.gain.value = 0.5;
-      const hp = ac.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 900;
-      crackle.connect(hp); hp.connect(g); g.connect(musicBus); crackle.start();
-    }
   }
 
   const now = () => ac.currentTime;

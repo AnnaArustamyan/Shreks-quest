@@ -220,32 +220,41 @@ const THEMES = {
   },
 };
 
-// ---------- big green ogre flying superhero-style (facing right) ----------
-const OG = { skin: '#8cc152', skinD: '#5f8f34', shirt: '#eadfb4', vest: '#5a3a1e', pants: '#7a5a32', boot: '#3e2a1a', cape: '#d0343e', capeD: '#9a1e2a' };
-function ogreParts(f) {
-  return [
-    // cape flutters behind
-    f ? [3, 2, 17, 5, OG.cape] : [2, 5, 18, 4, OG.cape],
-    f ? [0, 1, 5, 4, OG.capeD] : [0, 7, 4, 4, OG.capeD],
-    [0, 10, 5, 6, OG.boot], [5, 10, 10, 6, OG.pants], [5, 12, 10, 1, '#5e4424', 1],
-    [14, 7, 13, 10, OG.shirt], [16, 7, 8, 10, OG.vest], [14, 14, 13, 2, OG.boot, 1],
-    // arm along the body
-    [18, 16, 8, 3, OG.skin], [26, 16, 3, 3, OG.skinD],
-    // big round head
-    [27, 5, 12, 12, OG.skin], [28, 4, 10, 1, OG.skin], [28, 17, 10, 1, OG.skin],
-    // trumpet ears: stalk + flared tip
-    [29, 1, 2, 4, OG.skin], [28, 0, 4, 2, OG.skinD], [35, 1, 2, 4, OG.skin], [34, 0, 4, 2, OG.skinD],
-    // fist punching forward
-    [39, 6, 4, 4, OG.skin], [37, 9, 3, 2, OG.skin],
-    [31, 8, 2, 1, '#3e5a1e', 1], [35, 8, 2, 1, '#3e5a1e', 1], // brows
-    [31, 9, 2, 2, '#ffffff', 1], [32, 9, 1, 2, '#2a1a10', 1], [35, 9, 2, 2, '#ffffff', 1], [36, 9, 1, 2, '#2a1a10', 1],
-    [33, 11, 2, 2, OG.skinD, 1], // nose
-    [31, 14, 6, 1, '#3e5a1e', 1], [30, 13, 1, 1, '#3e5a1e', 1], [37, 13, 1, 1, '#3e5a1e', 1], // big grin
-    [29, 12, 1, 1, '#b8d878', 1], [38, 12, 1, 1, '#b8d878', 1],
+// ---------- big green ogre peeking down from the top of the screen ----------
+const OG = { skin: '#a8c43c', skinD: '#7a962a', skinL: '#c4dc5c', brow: '#55701c', iris: '#6a4a24' };
+// look: -1 left, 0 middle, 1 right; grin: 0..1
+function ogreFaceParts(look, blink, grin) {
+  const P = [
+    // trumpet ears sticking out sideways
+    [0, 15, 6, 3, OG.skin], [-3, 12, 3, 9, OG.skinD], [-2, 14, 1, 5, '#3e4e14', 1],
+    [34, 15, 6, 3, OG.skin], [40, 12, 3, 9, OG.skinD], [41, 14, 1, 5, '#3e4e14', 1],
+    // wide round head, jowly at the bottom
+    [9, 2, 22, 2, OG.skin], [6, 4, 28, 3, OG.skin], [4, 7, 32, 4, OG.skin], [3, 11, 34, 14, OG.skin],
+    [4, 25, 32, 3, OG.skin], [6, 28, 28, 3, OG.skin], [9, 31, 22, 2, OG.skin],
+    [12, 3, 6, 2, OG.skinL, 1], [6, 8, 3, 3, OG.skinL, 1],
+    // heavy brows
+    [9, 11, 9, 2, OG.brow, 1], [22, 11, 9, 2, OG.brow, 1], [9, 13, 2, 1, OG.brow, 1], [29, 13, 2, 1, OG.brow, 1],
+    // big round nose
+    [16, 16, 8, 7, OG.skinL, 1], [15, 18, 1, 4, OG.skinD, 1], [24, 18, 1, 4, OG.skinD, 1], [16, 23, 8, 1, OG.skinD, 1],
+    [17, 21, 2, 1, '#55701c', 1], [21, 21, 2, 1, '#55701c', 1],
+    // cheeks
+    [6, 21, 4, 2, '#c0cc54', 1], [30, 21, 4, 2, '#c0cc54', 1],
   ];
+  if (blink) P.push([11, 16, 6, 1, '#2a2a10', 1], [23, 16, 6, 1, '#2a2a10', 1]);
+  else {
+    const lx = look * 2;
+    P.push([11, 14, 6, 4, '#ffffff', 1], [23, 14, 6, 4, '#ffffff', 1],
+      [13 + lx, 14, 3, 4, OG.iris, 1], [25 + lx, 14, 3, 4, OG.iris, 1],
+      [14 + lx, 15, 1, 2, '#1a1008', 1], [26 + lx, 15, 1, 2, '#1a1008', 1]);
+  }
+  // mouth: a smirk that widens into a big grin
+  const g = Math.round(grin * 3);
+  P.push([11 - g, 27, 18 + g * 2, 1, '#3e4e14', 1], [10 - g, 26, 1, 1, '#3e4e14', 1], [29 + g, 26, 1, 1, '#3e4e14', 1]);
+  if (g >= 2) P.push([13, 28, 14, 1, '#7a2a1a', 1], [15, 28, 2, 1, '#f0ecd0', 1], [23, 28, 2, 1, '#f0ecd0', 1]);
+  return P;
 }
-function drawOgre(g, x, y, f, scale = 3) {
+function drawPeekingOgre(g, x, y, look, blink, grin, scale = 3) {
   g.save(); g.translate(Math.round(x), Math.round(y)); g.scale(scale, scale);
-  drawParts(g, ogreParts(f), 0, 0, 44, false);
+  drawParts(g, ogreFaceParts(look, blink, grin), 0, 0, 40, false);
   g.restore();
 }
