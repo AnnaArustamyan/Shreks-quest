@@ -202,6 +202,19 @@ const Sound = (() => {
   }
 
   const now = () => ac.currentTime;
+  function voice(t, f, dur) {
+    const osc = ac.createOscillator(), bp = ac.createBiquadFilter(), g = ac.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(f, t);
+    osc.frequency.linearRampToValueAtTime(f * 1.45, t + dur * 0.4);
+    osc.frequency.linearRampToValueAtTime(f * 1.2, t + dur);
+    bp.type = 'bandpass'; bp.frequency.value = rand(800, 1200); bp.Q.value = 3;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.05, t + 0.05);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    osc.connect(bp); bp.connect(g); g.connect(sfxBus);
+    osc.start(t); osc.stop(t + dur + 0.05);
+  }
   const fx = {
     jump(h) {
       if (h === 'dragon') tone({ type: 'triangle', f: 200, f2: 520, dur: 0.16, vol: 0.16 });
@@ -217,7 +230,13 @@ const Sound = (() => {
     give() { [784, 988, 1175, 1568, 1976].forEach((f, i) => tone({ type: 'sine', f, t: now() + i * 0.09, dur: 0.7, vol: 0.08 })); },
     nope() { const t = now(); tone({ f: 220, t, dur: 0.1, vol: 0.05 }); tone({ f: 165, t: t + 0.12, dur: 0.16, vol: 0.05 }); },
     select() { tone({ f: 660, dur: 0.06, vol: 0.05 }); },
-    firework() { noise({ dur: 0.5, vol: 0.14, type: 'bandpass', freq: 1400, freq2: 250 }); },
+    whistle() { tone({ type: 'sine', f: 600, f2: 1800, dur: 0.65, vol: 0.035, a: 0.05 }); },
+    firework() {
+      const t = now();
+      tone({ type: 'sine', f: 140, f2: 38, t, dur: 0.6, vol: 0.28 }); // boom
+      noise({ t, dur: 0.12, vol: 0.12, freq: 700 });
+      for (let i = 0; i < 9; i++) tone({ type: 'triangle', f: rand(2200, 4200), t: t + 0.08 + rand(0, 0.6), dur: 0.04, vol: 0.025 }); // crackle
+    },
     bells() { [1046, 1318, 1568].forEach((f, i) => { tone({ type: 'sine', f, t: now() + i * 0.18, dur: 1.6, vol: 0.06 }); tone({ type: 'sine', f: f * 2.76, t: now() + i * 0.18, dur: 0.5, vol: 0.015 }); }); },
     heehaw() {
       const t = now();
@@ -226,14 +245,19 @@ const Sound = (() => {
         tone({ type: 'sawtooth', f: 520, f2: 290, t: t + k * 0.6 + 0.27, dur: 0.3, vol: 0.07, lp: 1400 });
       }
     },
+    boing() { tone({ type: 'sine', f: 180, f2: 520, dur: 0.18, vol: 0.06 }); },
+    shoot() { tone({ type: 'square', f: 900, f2: 300, dur: 0.12, vol: 0.04, lp: 2500 }); },
+    snort() { const t = now(); tone({ type: 'sawtooth', f: 90, f2: 60, t, dur: 0.18, vol: 0.08, lp: 600 }); tone({ type: 'sawtooth', f: 100, f2: 70, t: t + 0.22, dur: 0.2, vol: 0.08, lp: 600 }); },
+    powerup() { [523, 659, 784, 1046, 1318, 1568].forEach((f, i) => tone({ type: 'square', f, t: now() + i * 0.06, dur: 0.12, vol: 0.05, lp: 3000 })); },
+    powerdown() { [784, 659, 523].forEach((f, i) => tone({ type: 'triangle', f, t: now() + i * 0.08, dur: 0.12, vol: 0.06 })); },
     talk() { // low ogre mumble
       const t = now();
       for (let i = 0; i < 6; i++) tone({ type: 'square', f: rand(95, 150), t: t + i * 0.11, dur: 0.08, vol: 0.05, lp: 700 });
     },
-    cheer() { // crowd roar + happy squeaks
+    cheer(size = 1) {
       const t = now();
-      noise({ t, dur: 1.6, vol: 0.12, type: 'bandpass', freq: 900, q: 0.6 });
-      for (let i = 0; i < 12; i++) tone({ type: 'triangle', f: rand(500, 1100), f2: rand(900, 1600), t: t + rand(0, 1.2), dur: 0.15, vol: 0.04 });
+      for (let i = 0; i < Math.round(10 * size); i++) voice(t + rand(0, 0.9 * size), rand(230, 480), rand(0.35, 0.7));
+      for (let i = 0; i < Math.round(18 * size); i++) noise({ t: t + rand(0, 1.4 * size), dur: 0.03, vol: 0.09, type: 'bandpass', freq: rand(1300, 2300), q: 1.2 }); // claps
     },
     sob() {
       const t = now();

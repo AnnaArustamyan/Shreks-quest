@@ -128,7 +128,43 @@ const ENEMY = {
     [10, -10, 1, 22, '#8a5a3a'], [9, -14, 3, 4, '#e6ecf4'],
   ] },
 };
-const ENEMY_KIND = { donkey: { e: 'beetle', b: 'bee', s: 'hedgehog' }, dragon: { e: 'knight', b: 'bat', s: 'pikeman' } };
+// hoppers leap at you, shooters fire from a distance, chargers snort then rush
+function boarParts(body, head, mane, f, angry) {
+  return [
+    [2, 2, 13, 7, body], [13, 3, 5, 5, head], [17, 5, 2, 3, '#d89a8a'], [18, 6, 1, 1, '#7a4a3a', 1],
+    [16, 7, 1, 2, '#fff8e0'], [4, 1, 8, 1, mane, 1], [6, 0, 4, 1, mane, 1], [0, 3, 2, 2, mane],
+    [15, 4, 1, 1, angry ? '#ff3a3a' : OUT, 1],
+    [3 + f, 9, 2, 2, head], [7 - f, 9, 2, 2, head], [11 + f, 9, 2, 2, head],
+  ];
+}
+Object.assign(ENEMY, {
+  frog: { w: 12, h: 9, hop: true, name: 'HOPPY FROG', parts: f => [
+    [1, 3, 10, 6, '#5cb85c'], [6, 0, 3, 3, '#5cb85c'], [9, 0, 3, 3, '#5cb85c'],
+    [7, 1, 1, 1, '#ffffff', 1], [10, 1, 1, 1, '#ffffff', 1], [3, 6, 7, 2, '#c8f0a0', 1], [8, 5, 4, 1, '#2a5a2a', 1],
+    f ? [-2, 7, 4, 2, '#3e8a44'] : [0, 7, 4, 2, '#3e8a44'],
+  ] },
+  slime: { w: 12, h: 9, hop: true, name: 'EMBER SLIME', parts: f => [
+    [1, f ? 2 : 3, 10, f ? 7 : 6, '#ff7a1a'], [3, f ? 0 : 1, 6, 2, '#ff7a1a'], [5, f ? -2 : -1, 2, 2, '#ffd84a'],
+    [3, 3, 2, 1, '#ffd84a', 1], [6, 4, 1, 2, OUT, 1], [9, 4, 1, 2, OUT, 1], [7, 7, 3, 1, '#9a2a0a', 1],
+  ] },
+  thistle: { w: 12, h: 14, shoot: true, name: 'SPITTING THISTLE', parts: f => [
+    [5, 6, 2, 8, '#3e8a44'], [1, 9, 4, 2, '#5cb85c'], [7, 10, 4, 2, '#5cb85c'],
+    [2, 0, 8, 7, '#9a5ac8'], [1, 2, 1, 3, '#7a3aa8'], [3, -1, 1, 1, '#7a3aa8'], [6, -1, 1, 1, '#7a3aa8'],
+    [4, 2, 1, 1, '#ffffff', 1], f ? [7, 2, 4, 4, '#3a1a40', 1] : [8, 3, 3, 2, '#3a1a40', 1],
+  ] },
+  archer: { w: 13, h: 16, shoot: true, name: 'CROSSBOW KNIGHT', parts: f => [
+    [3, 12, 2, 4, '#6a7080'], [7, 12, 2, 4, '#6a7080'],
+    [2, 6, 8, 7, '#6a7a5a'], [4, 7, 4, 5, '#3a4a2a', 1],
+    [2, 0, 8, 7, '#8a92a2'], [5, 3, 5, 1, OUT, 1], [4, -2, 3, 2, '#3a6a3a'],
+    [8, 8, 5, 2, '#8a5a3a'], [12, 6, 1, 6, '#6a4a2a'], f ? [9, 7, 4, 1, '#e6ecf4', 1] : [9, 7, 2, 1, '#e6ecf4', 1],
+  ] },
+  boar: { w: 19, h: 11, charge: true, name: 'WILD BOAR', parts: (f, angry) => boarParts('#8a5a3a', '#7a4a2a', '#4a2a1a', f, angry) },
+  ironboar: { w: 19, h: 11, charge: true, name: 'IRON BOAR', parts: (f, angry) => boarParts('#7a8090', '#5a6070', '#3a3e4a', f, angry) },
+});
+const ENEMY_KIND = {
+  donkey: { e: 'beetle', b: 'bee', s: 'hedgehog', h: 'frog', g: 'thistle', c: 'boar' },
+  dragon: { e: 'knight', b: 'bat', s: 'pikeman', h: 'slime', g: 'archer', c: 'ironboar' },
+};
 
 // ---------- small things ----------
 const HEART = ['.XX.XX.', 'XXXXXXX', 'XXXXXXX', '.XXXXX.', '..XXX..', '...X...'];

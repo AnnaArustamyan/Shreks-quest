@@ -58,7 +58,7 @@
   let mode = 'loading', modeT = 0, T = 0, paused = false;
   let hero = 'donkey', levelIdx = 0, hearts = 3, totalFlowers = 0, totalTreats = 0;
   let L = null, P = null, cam = 0, shake = 0;
-  let parts = [], fireballs = [], floaters = [], bubble = null, bouquet = null, partnerHop = 0;
+  let parts = [], fireballs = [], shots = [], floaters = [], bubble = null, bouquet = null, partnerHop = 0;
   let tiles = { donkey: null, dragon: null };
   let embers = [], butterflies = [], W = null;
 
@@ -80,11 +80,11 @@
         else if (t === 'P') lv.start = { x: x + 2, y };
         else if (t === 'G') lv.goal = { x: x + 8, y: y + 16 };
         else if (t === 'M' || t === 'N' || t === 'n') lv.movers.push({ cx: x + 8, y, w: 48, h: 8, range: t === 'M' ? 80 : 64, ph: t === 'n' ? Math.PI : 0, x: x - 16, dx: 0 });
-        else if (t === 'e' || t === 'b' || t === 's') {
+        else if ('ebshgc'.includes(t)) {
           const kind = kinds[t], E = ENEMY[kind];
           const sp = 26 * def.speed * (hero === 'dragon' ? 1.2 : 1);
           lv.enemies.push({ kind, x: x + (16 - E.w) / 2, y: y + 16 - E.h, w: E.w, h: E.h, x0: x, y0: y + 2, vx: 0, vy: 0, dir: -1, face: -1,
-            speed: sp, fly: !!E.fly, spiky: !!E.spiky, t: Math.random() * 10, ph: Math.random() * 6, active: false, dead: false });
+            speed: sp, lv: def.speed, fly: !!E.fly, spiky: !!E.spiky, hop: !!E.hop, shoot: !!E.shoot, charge: !!E.charge, t: Math.random() * 10, ph: Math.random() * 6, active: false, dead: false });
         } else { grid[r][off + c] = t; continue; }
         grid[r][off + c] = ' ';
       }
@@ -150,9 +150,9 @@
     L = loadLevel(i);
     hearts = 3;
     const w = hero === 'donkey' ? 12 : 14;
-    P = { x: L.start.x, y: L.start.y, w, h: 16, vx: 0, vy: 0, face: 1, onGround: false, coyote: 0, jbuf: 0, inv: 0, cd: 0, actT: 0, standOn: null, anim: 0, glide: false };
+    P = { power: 0, x: L.start.x, y: L.start.y, w, h: 16, vx: 0, vy: 0, face: 1, onGround: false, coyote: 0, jbuf: 0, inv: 0, cd: 0, actT: 0, standOn: null, anim: 0, glide: false };
     cam = clamp(P.x - 120, 0, L.worldW - VW);
-    parts = []; fireballs = []; floaters = []; bubble = null; bouquet = null;
+    parts = []; fireballs = []; shots = []; floaters = []; bubble = null; bouquet = null;
     mode = 'intro'; modeT = 0;
     Sound.play(hero);
     if (hero === 'donkey') Sound.fx.heehaw(); else Sound.fx.roar();
@@ -163,8 +163,12 @@
     cam = clamp(P.x - 120, 0, L.worldW - VW);
   }
 
+  // a waffle sugar rush makes Donkey untouchable (pits still count)
+  const POWER_TIME = 6;
+  const rushing = () => hero === 'donkey' && P && P.power > 0;
+
   function hurt(fell) {
-    if (!fell && P.inv > 0) return;
+    if (!fell && (P.inv > 0 || rushing())) return;
     hearts--; shake = 0.25;
     Sound.fx.hurt();
     burst(P.x + P.w / 2, P.y + 8, ['#ff4a6a', '#ffffff'], 10);
@@ -180,7 +184,7 @@
 
   function startWedding() {
     mode = 'wedding'; modeT = 0; parts = []; floaters = [];
-    W = { line: -1, kissed: false, fw: 0, shells: [], flash: 0 };
+    W = { line: -1, kissed: false, fw: 0, shells: [], flash: 0, cheerT: 0, shouts: [] };
     Sound.play('wedding');
   }
 
@@ -239,7 +243,7 @@
     const p = P;
     if (p.standOn) p.x += p.standOn.dx;
     const left = control && keys.left, right = control && keys.right;
-    const acc = p.onGround ? 1100 : 750, max = 110;
+    const rush = rushing(), acc = (p.onGround ? 1100 : 750) * (rush ? 1.4 : 1), max = rush ? 165 : 110;
     if (left && !right) { p.vx -= acc * dt; p.face = -1; }
     else if (right && !left) { p.vx += acc * dt; p.face = 1; }
     else { const f = (p.onGround ? 1000 : 250) * dt; p.vx = Math.abs(p.vx) <= f ? 0 : p.vx - Math.sign(p.vx) * f; }
@@ -248,7 +252,7 @@
     p.coyote = p.onGround ? 0.09 : p.coyote - dt;
     p.jbuf = control && pressed.jump ? 0.12 : p.jbuf - dt;
     if (p.jbuf > 0 && p.coyote > 0) {
-      p.vy = -JUMP; p.jbuf = 0; p.coyote = 0; p.standOn = null;
+      p.vy = rush ? -470 : -JUMP; p.jbuf = 0; p.coyote = 0; p.standOn = null;
       Sound.fx.jump(hero);
       burst(p.x + p.w / 2, p.y + p.h, ['#ffffff', '#d8d0c0'], 4, 30, 0, 0.3);
     }
@@ -272,6 +276,12 @@
     if (p.onGround && Math.abs(p.vx) > 10) p.anim += dt * Math.abs(p.vx) / 14; else if (p.onGround) p.anim = 0;
     if (p.inv > 0) p.inv -= dt;
     p.cd -= dt; p.actT -= dt;
+    if (p.power > 0) {
+      p.power -= dt;
+      if (Math.random() < 0.7) parts.push({ x: p.x + rand(0, p.w), y: p.y + rand(2, p.h), vx: -p.vx * 0.2, vy: rand(-20, 5), g: 0, life: 0.4, max: 0.4,
+        col: hero === 'donkey' ? ['#ffd34d', '#e8a848', '#ffffff'][(Math.random() * 3) | 0] : ['#ffb02a', '#ff5a1a', '#ffd84a'][(Math.random() * 3) | 0], s: 2 });
+      if (p.power <= 0) Sound.fx.powerdown();
+    }
 
     if (control && pressed.action && p.cd <= 0) {
       if (hero === 'donkey') {
@@ -280,8 +290,10 @@
         burst(p.x + p.w / 2 - p.face * 14, p.y + 12, ['#e8dcc0', '#ffffff'], 6, 50, 60, 0.35);
         for (const e of L.enemies) if (e.active && !e.dead && overlap(hb, e)) { killEnemy(e, Math.sign(e.x - p.x) || 1); Sound.fx.stomp(); }
       } else {
-        p.actT = 0.22; p.cd = 0.38; Sound.fx.fire();
-        fireballs.push({ x: p.face > 0 ? p.x + p.w : p.x - 6, y: p.y + 4, w: 6, h: 6, vx: p.face * 230 + p.vx * 0.3, life: 0.6 });
+        const fury = p.power > 0;
+        p.actT = 0.22; p.cd = fury ? 0.18 : 0.38; Sound.fx.fire();
+        for (const vy of fury ? [-80, 0, 80] : [0])
+          fireballs.push({ x: p.face > 0 ? p.x + p.w : p.x - 6, y: p.y + 4, w: 6, h: 6, vx: p.face * 230 + p.vx * 0.3, vy, life: 0.6 });
       }
     }
 
@@ -290,7 +302,7 @@
     const c0 = Math.floor(p.x / TS), c1 = Math.floor((p.x + p.w - 0.01) / TS);
     const r0 = Math.floor(p.y / TS), r1 = Math.floor((p.y + p.h - 0.01) / TS);
     for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) {
-      if (tileAt(c, r) === '^' && p.y + p.h > r * TS + 7 && P.inv <= 0) { hurt(false); p.vy = -320; return; }
+      if (tileAt(c, r) === '^' && p.y + p.h > r * TS + 7 && P.inv <= 0 && !rushing()) { hurt(false); p.vy = -320; return; }
     }
   }
 
@@ -305,20 +317,45 @@
         e.y = e.y0 + Math.sin(e.t * 2 + e.ph) * 6;
         e.face = Math.cos(e.t * 1.3 + e.ph) >= 0 ? 1 : -1;
       } else {
-        e.vx = e.dir * e.speed;
+        const dxp = p.x + p.w / 2 - (e.x + e.w / 2);
         e.vy = Math.min(e.vy + GRAV * dt, MAXFALL);
+        if (e.hop) { // crouch, then leap toward you
+          e.face = dxp > 0 ? 1 : -1;
+          if (e.onGround) {
+            e.vx = 0; e.hopT = (e.hopT === undefined ? rand(0.4, 1.4) : e.hopT) - dt;
+            if (e.hopT <= 0 && Math.abs(dxp) < 260) { e.vy = -330; e.vx = e.face * 70 * e.lv; e.hopT = 1.3 / e.lv; Sound.fx.boing(); }
+          }
+        } else if (e.shoot) { // stand still and fire at you
+          e.vx = 0; e.face = dxp > 0 ? 1 : -1;
+          e.shootT = (e.shootT === undefined ? 1 : e.shootT) - dt; e.fireT = (e.fireT || 0) - dt;
+          if (e.shootT <= 0 && Math.abs(dxp) < 230) {
+            e.shootT = 2.2 / e.lv; e.fireT = 0.25; Sound.fx.shoot();
+            shots.push({ x: e.face > 0 ? e.x + e.w : e.x - 6, y: e.y + (hero === 'donkey' ? 3 : 7), w: 6, h: 3, vx: e.face * 120 * e.lv, life: 3 });
+          }
+        } else if (e.charge) { // patrol; when facing you, snort and rush
+          e.cd = (e.cd || 0) - dt;
+          if (e.state === 'wind') { e.vx = 0; e.stT -= dt; if (e.stT <= 0) { e.state = 'run'; e.stT = 1.1; } }
+          else if (e.state === 'run') { e.vx = e.dir * 175; e.stT -= dt; if (e.stT <= 0) { e.state = null; e.cd = 1.4; } }
+          else {
+            e.vx = e.dir * e.speed * 0.7;
+            if (e.cd <= 0 && Math.abs(dxp) < 150 && Math.abs(p.y + p.h - e.y - e.h) < 24 && Math.sign(dxp) === e.dir) { e.state = 'wind'; e.stT = 0.45; Sound.fx.snort(); }
+          }
+        } else e.vx = e.dir * e.speed;
         const hit = moveBody(e, dt);
-        if (hit) e.dir = -hit;
-        else if (e.onGround) {
+        if (hit) {
+          e.dir = -hit;
+          if (e.state === 'run') { e.state = null; e.cd = 1.4; shake = 0.15; Sound.fx.stomp(); }
+        } else if (e.onGround && !e.hop && !e.shoot) {
           const fx = e.dir > 0 ? e.x + e.w + 1 : e.x - 1;
           const t = tileAt(Math.floor(fx / TS), Math.floor((e.y + e.h + 2) / TS));
-          if (!solid(t) && t !== '-') e.dir *= -1;
+          if (!solid(t) && t !== '-') { e.dir *= -1; if (e.state === 'run') { e.state = null; e.cd = 1.4; } }
         }
-        e.face = e.dir;
+        if (!e.hop && !e.shoot) e.face = e.dir;
         if (e.y > VH + 30) { e.dead = true; continue; }
       }
       if (overlap(p, e)) {
-        if (!e.spiky && p.vy > 0 && p.y + p.h - e.y < 10) {
+        if (rushing()) { killEnemy(e, p.face); Sound.fx.stomp(); shake = 0.1; floater(e.x, e.y - 6, 'BONK!', '#ffd34d'); }
+        else if (!e.spiky && p.vy > 0 && p.y + p.h - e.y < 10) {
           killEnemy(e, p.face); p.vy = keys.jump ? -380 : -260; Sound.fx.stomp();
         } else hurt(false);
       }
@@ -326,13 +363,21 @@
     L.enemies = L.enemies.filter(e => !(e.dead && e.y > VH + 40));
 
     for (const f of fireballs) {
-      f.x += f.vx * dt; f.life -= dt;
+      f.x += f.vx * dt; f.y += (f.vy || 0) * dt; f.life -= dt;
       if (Math.random() < 0.6) parts.push({ x: f.x + 3, y: f.y + 3 + rand(-2, 2), vx: -f.vx * 0.1, vy: rand(-20, 0), g: -30, life: 0.3, max: 0.3, col: Math.random() < 0.5 ? '#ffb02a' : '#ff5a1a', s: 2 });
       if (solid(tileAt(Math.floor((f.x + 3) / TS), Math.floor((f.y + 3) / TS)))) f.life = 0;
       for (const e of L.enemies) if (e.active && !e.dead && overlap(f, e)) { killEnemy(e, Math.sign(f.vx)); Sound.fx.stomp(); f.life = 0; }
       if (f.life <= 0) burst(f.x + 3, f.y + 3, ['#ffd84a', '#ff5a1a'], 5, 40, 0, 0.3);
     }
     fireballs = fireballs.filter(f => f.life > 0);
+
+    for (const s of shots) {
+      s.x += s.vx * dt; s.life -= dt;
+      if (solid(tileAt(Math.floor((s.x + 3) / TS), Math.floor((s.y + 1) / TS)))) s.life = 0;
+      if (s.life > 0 && overlap(p, s)) { s.life = 0; if (!rushing()) hurt(false); }
+      for (const f of fireballs) if (s.life > 0 && overlap(f, s)) { s.life = 0; f.life = 0; } // fire burns shots
+    }
+    shots = shots.filter(s => s.life > 0);
 
     const th = THEMES[hero];
     for (const f of L.flowers) if (!f.taken && overlap(p, f)) {
@@ -341,10 +386,12 @@
       floater(f.x, f.y - 4, '+1');
     }
     for (const w of L.treats) if (!w.taken && overlap(p, w)) {
-      w.taken = true; L.treatsGot++; Sound.fx.bonus();
-      burst(w.x + 5, w.y + 5, ['#ffd34d', '#ffffff'], 10, 60, 40, 0.6);
-      if (hearts < 3) { hearts++; floater(w.x - 8, w.y - 4, '+HEART', '#ff8aa8'); }
-      else floater(w.x - 8, w.y - 4, hero === 'donkey' ? 'YUM!' : 'SHINY!', '#ffd34d');
+      w.taken = true; L.treatsGot++; Sound.fx.powerup();
+      burst(w.x + 5, w.y + 5, ['#ffd34d', '#ffffff'], 14, 70, 40, 0.7);
+      // waffle = sugar rush, gold = dragon fury (and both heal)
+      p.power = POWER_TIME;
+      if (hearts < 3) hearts++;
+      floater(w.x - 30, w.y - 4, hero === 'donkey' ? 'SUGAR RUSH!' : 'DRAGON FURY!', '#ffd34d');
     }
     for (const c of L.checkpoints) if (!c.on && overlap(p, c)) {
       c.on = true; L.respawn = { x: c.x, y: c.y }; Sound.fx.checkpoint();
@@ -439,8 +486,8 @@
   const WED = { kiss: 11.4, banner: 12.2, stats: 13.4, done: 15 };
   const GUESTS = [
     { k: 'beetle', x: 14, row: 0 }, { k: 'hedgehog', x: 40, row: 0 }, { k: 'knight', x: 70, row: 0 }, { k: 'bee', x: 100, row: 0 },
-    { k: 'bat', x: 26, row: 1 }, { k: 'pikeman', x: 56, row: 1 }, { k: 'beetle', x: 88, row: 1 },
-    { k: 'bee', x: 290, row: 0 }, { k: 'knight', x: 318, row: 0 }, { k: 'hedgehog', x: 346, row: 0 }, { k: 'beetle', x: 374, row: 0 },
+    { k: 'bat', x: 26, row: 1 }, { k: 'pikeman', x: 56, row: 1 }, { k: 'frog', x: 88, row: 1 },
+    { k: 'bee', x: 290, row: 0 }, { k: 'knight', x: 318, row: 0 }, { k: 'hedgehog', x: 346, row: 0 }, { k: 'boar', x: 368, row: 0 },
     { k: 'hedgehog', x: 300, row: 1 }, { k: 'bat', x: 330, row: 1 }, { k: 'pikeman', x: 360, row: 1 },
   ];
   function wedLines() {
@@ -474,6 +521,16 @@
       for (const gu of GUESTS) burst(gu.x + 6, 160 + gu.row * 10, ['#ff7aa8', '#ffd34d', '#ffffff', '#8ab8ff'], 6, 90, 120, 1.2);
     }
     if (W.flash > 0) W.flash -= dt * 2;
+    if (W.kissed) { // the crowd keeps cheering
+      W.cheerT -= dt;
+      if (W.cheerT <= 0) { W.cheerT = 3.2; if (t > WED.kiss + 1) Sound.fx.cheer(0.6); }
+      if (Math.random() < dt * 2.5) {
+        const gi = (Math.random() * GUESTS.length) | 0;
+        W.shouts.push({ gi, text: ['YAY!', 'WOO!', 'HOORAY!', '<3', 'BRAVO!'][(Math.random() * 5) | 0], life: 1.2 });
+      }
+    }
+    for (const s of W.shouts) s.life -= dt;
+    W.shouts = W.shouts.filter(s => s.life > 0);
     if (t > WED.kiss) for (let i = 0; i < 2; i++) {
       parts.push({ x: rand(0, VW), y: -4, vx: rand(-15, 15), vy: rand(25, 55), g: 8, life: 5, max: 5,
         col: ['#ff7aa8', '#ffd34d', '#8ab8ff', '#ffffff', '#c78aff', '#7dff8a'][(Math.random() * 6) | 0], s: 2 });
@@ -483,7 +540,7 @@
       W.fw -= dt;
       if (W.fw <= 0) {
         W.fw = 0.9; W.breath = 0.35;
-        Sound.fx.fire();
+        Sound.fx.whistle();
         W.shells.push({ x: W.rx - 20, y: 152, tx: rand(40, 360), ty: rand(50, 100), t: 0 });
       }
     }
@@ -655,8 +712,12 @@
   }
 
   function drawEnemy(e, x, y) {
-    const E = ENEMY[e.kind], f = Math.floor(e.t * (E.fly ? 8 : 6)) % 2;
-    const pr = E.parts(f);
+    const E = ENEMY[e.kind];
+    let f = Math.floor(e.t * (E.fly ? 8 : e.state === 'run' ? 14 : 6)) % 2;
+    if (E.hop) f = e.onGround ? 0 : 1;
+    if (E.shoot) f = e.fireT > 0 ? 1 : 0;
+    if (e.state === 'wind') x += Math.floor(e.t * 30) % 2; // shaking with rage before the charge
+    const pr = E.parts(f, !!e.state);
     if (e.dead) {
       ctx.save(); ctx.translate(Math.round(x), Math.round(y + e.h)); ctx.scale(1, -1);
       drawParts(ctx, pr, 0, 0, E.w, e.face < 0); ctx.restore();
@@ -707,6 +768,16 @@
     for (const e of L.enemies) if (e.active || vis(e.x)) drawEnemy(e, e.x - cx, e.y);
     for (const f of fireballs) { const x = f.x - cx + 3, y = f.y + 3; pcircle(ctx, x, y, 4, '#ff5a1a'); pcircle(ctx, x, y, 2, Math.floor(T * 20) % 2 ? '#ffd84a' : '#fff2a0'); }
 
+    for (const s of shots) {
+      const x = Math.round(s.x - cx), y = Math.round(s.y);
+      if (hero === 'donkey') { ctx.fillStyle = OUT; ctx.fillRect(x - 1, y - 1, 6, 5); ctx.fillStyle = '#8a5a30'; ctx.fillRect(x, y, 4, 3); ctx.fillStyle = '#c8f0a0'; ctx.fillRect(x + (s.vx > 0 ? 3 : 0), y, 1, 1); }
+      else { ctx.fillStyle = '#8a5a3a'; ctx.fillRect(x, y + 1, 6, 1); ctx.fillStyle = '#e6ecf4'; ctx.fillRect(s.vx > 0 ? x + 6 : x - 2, y, 2, 3); ctx.fillStyle = '#e0405a'; ctx.fillRect(s.vx > 0 ? x - 1 : x + 6, y, 1, 3); }
+    }
+    if (P.power > 0 && (P.power > 1.5 || Math.floor(T * 10) % 2)) {
+      ctx.globalAlpha = 0.3 + 0.1 * Math.sin(T * 12);
+      pcircle(ctx, P.x + P.w / 2 - cx, P.y + P.h / 2, 16, hero === 'donkey' ? '#ffd34d' : '#ff7a1a');
+      ctx.globalAlpha = 1;
+    }
     if (!(P.inv > 0 && Math.floor(T * 20) % 2)) drawHero(ctx, hero, P.x + P.w / 2 - cx, P.y + P.h, P.face, heroState(P, hero));
 
     for (const q of parts) { ctx.globalAlpha = clamp(q.life / q.max * 1.5, 0, 1); ctx.fillStyle = q.col; ctx.fillRect(Math.round(q.x - cx), Math.round(q.y), q.s, q.s); }
@@ -718,7 +789,11 @@
       if (!bouquet.done || bouquet.few) drawBouquet(x, y, bouquet.few);
     }
     if (bubble && bubble.life > 0) speech(g.x - cx, g.y - 40, bubble.text);
-    for (const f of floaters) { ctx.globalAlpha = clamp(f.life * 2, 0, 1); txt(f.text, Math.round(f.x - cx), Math.round(f.y), f.col); }
+    for (const f of floaters) {
+      ctx.globalAlpha = clamp(f.life * 2, 0, 1);
+      ctx.font = `8px ${FONT}`;
+      txt(f.text, Math.round(clamp(f.x - cx, 2, VW - ctx.measureText(f.text).width - 3)), Math.round(f.y), f.col);
+    }
     ctx.globalAlpha = 1;
     drawHUD();
   }
@@ -755,7 +830,13 @@
     for (let i = 0; i < 3; i++) heart(ctx, 6 + i * 11, 6, i < hearts ? '#ff4a6a' : '#4a3048');
     drawParts(ctx, [[3, 0, 4, 2, '#ff7aa8'], [1, 2, 8, 4, '#ff7aa8'], [3, 6, 4, 2, '#ff7aa8'], [4, 3, 2, 2, '#ffd34d', 1]], 6, 17, 10, false);
     txt(`${L.got}/${L.need}`, 20, 18, L.got >= L.need ? '#7dff8a' : '#ffffff');
-    if (L.treatsGot) txt(`${THEMES[hero].treat} ${L.treatsGot}`, 6, 30, '#ffd34d');
+    if (P.power > 0) {
+      const lbl = hero === 'donkey' ? 'SUGAR RUSH' : 'FURY';
+      txt(lbl, 6, 30, '#ffd34d');
+      ctx.fillStyle = OUT; ctx.fillRect(6, 40, 52, 5);
+      ctx.fillStyle = '#5a4030'; ctx.fillRect(7, 41, 50, 3);
+      ctx.fillStyle = P.power > 1.5 || Math.floor(T * 10) % 2 ? '#ffd34d' : '#ffffff'; ctx.fillRect(7, 41, Math.round(50 * P.power / POWER_TIME), 3);
+    }
     txt(`LV${levelIdx + 1}`, 42, 6, '#ffffff');
     if (mode === 'play' && modeT < 5) {
       const h = hero === 'donkey' ? 'X / B: BUCK KICK!  STOMP BUGS' : 'X / B: FIRE!  HOLD JUMP: GLIDE';
@@ -839,7 +920,13 @@
     txt(name, VW / 2, 96, hero === 'donkey' ? '#a6e49a' : '#ffb02a', 16, 'center');
     txt(`COLLECT ${L.need} FLOWERS`, VW / 2, 130, '#ffffff', 8, 'center');
     txt(`AND BRING THEM TO ${NAME[other(hero)]}`, VW / 2, 144, '#ffffff', 8, 'center');
-    heart(ctx, VW / 2 - 7, 162 + Math.round(Math.sin(T * 4) * 2), '#ff4a6a', 2);
+    const nk = ENEMY_KIND[hero][LEVELS[levelIdx].newFoe], NE = ENEMY[nk];
+    const label = `NEW FOE: ${NE.name}!`;
+    ctx.font = `8px ${FONT}`;
+    const lw = ctx.measureText(label).width, lx = Math.round(VW / 2 - (lw + NE.w * 2 + 8) / 2);
+    ctx.save(); ctx.translate(lx, 172 - NE.h * 2 + 8); ctx.scale(2, 2); drawParts(ctx, NE.parts(Math.floor(T * 4) % 2), 0, 0, NE.w, false); ctx.restore();
+    txt(label, lx + NE.w * 2 + 8, 168, '#ff8a8a');
+    txt(hero === 'donkey' ? 'EAT WAFFLES FOR A SUGAR RUSH!' : 'GRAB GOLD FOR DRAGON FURY!', VW / 2, 192, '#ffd34d', 8, 'center');
   }
 
   function drawGive() {
@@ -941,6 +1028,14 @@
 
     for (const q of parts) { ctx.globalAlpha = clamp(q.life / q.max * 1.5, 0, 1); ctx.fillStyle = q.col; ctx.fillRect(Math.round(q.x), Math.round(q.y), q.s, q.s); }
     ctx.globalAlpha = 1;
+    for (const s of W.shouts) {
+      const gu = GUESTS[s.gi];
+      ctx.globalAlpha = Math.min(1, s.life * 2);
+      ctx.font = `8px ${FONT}`;
+      const hw = ctx.measureText(s.text).width / 2 + 2;
+      txt(s.text, Math.round(clamp(gu.x + 6, hw, VW - hw)), Math.round(150 + gu.row * 10 - (1.2 - s.life) * 18), ['#ffd34d', '#ff8aa8', '#ffffff', '#a6e49a'][s.gi % 4], 8, 'center');
+      ctx.globalAlpha = 1;
+    }
     if (W.flash > 0) shade(W.flash * 0.55, '#ffffff');
 
     // "JUST MARRIED" ribbon banner drops in

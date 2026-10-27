@@ -10,14 +10,26 @@ Choose your path: walk the **Path of the Donkey** or the **Path of the Dragon**.
 |---|---|---|
 | World | sunny swamp, chill lofi beats | lava and castles, intense chiptune |
 | Powers | stomp + **buck kick** (hits both sides) | stomp + **fire breath**, hold jump to **glide** |
-| Treats | waffles (heal a heart) | gold (heals a heart) |
-| Enemies | beetles, bees, spiky hedgehogs | knights, bats, spiky pikemen |
+| Treat | **waffles: SUGAR RUSH!** 6 s of speed and big jumps, and anything you touch gets flattened | **gold: DRAGON FURY!** 6 s of rapid triple fireballs |
 | Your love | Dragon | Donkey |
 
-Spiky enemies can't be stomped: kick them, burn them or jump over them.
+Treats also heal a heart.
+
+### Monsters
+| | Path of the Donkey | Path of the Dragon |
+|---|---|---|
+| Every level | beetles, bees, spiky hedgehogs | knights, bats, spiky pikemen |
+| New in level 1 | Hoppy Frog (leaps at you) | Ember Slime (leaps at you) |
+| New in level 2 | Spitting Thistle (shoots seeds) | Crossbow Knight (shoots bolts) |
+| New in level 3 | Wild Boar (snorts, then charges) | Iron Boar (snorts, then charges) |
+
+Spiky enemies can't be stomped: kick them, burn them or jump over them. Fireballs burn up incoming shots.
 
 ## The flower goal
 A signpost before your love shows how many flowers they want. Bring enough and they catch your bouquet with a burst of hearts. Show up with too few and they'll drop it and burst into tears: you lose a heart and have to go back for more.
+
+## The wedding
+After level 3, Shrek officiates the wedding under a flower arch while every monster you met cheers from the benches, followed by fireworks and the big kiss. Press jump to skip ahead.
 
 ## Controls
 - **Move:** ← → / A D

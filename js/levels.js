@@ -2,6 +2,7 @@
 //  # ground   = block   - one-way ledge   ^ hazard (thorns / lava)
 //  F flower   W treat (waffle / gold)     C checkpoint
 //  e walker   b flyer   s spiky (can't be stomped)
+//  h hopper   g shooter   c charger
 //  M / N / n moving platforms   P start   G your love waits here
 const ROWS = 14;
 
@@ -140,6 +141,46 @@ const CHUNKS = {
   e      e       e
 ######  ######  ######  #
 ######  ######  ######  #`,
+  frogPond: `
+     F    F    F     
+                     
+   h        h        
+#####################
+#####################`,
+  frogSteps: `
+       F      FW   
+             ===   
+   F  ===          
+         h      h  
+###################
+###################`,
+  sniper: `
+         F F          
+                  g   
+                 ===  
+    F    h       ===  
+######################
+######################`,
+  sniperHigh: `
+    F           g    
+   ===         ===   
+          F          
+       -------       
+  h                  
+#####################
+#####################`,
+  boarRun: `
+      F     F     F     F      
+                               
+   c               c           
+###############################
+###############################`,
+  boarGap: `
+     F   F        F   F     
+                            
+   c                  g     
+#########     ##############
+#########     ##############`,
   goal: `
                   ==
                   ==
@@ -149,12 +190,15 @@ const CHUNKS = {
 };
 
 const LEVELS = [
-  { chunks: ['start', 'flat', 'gap2', 'stepsUp', 'enemies1', 'gap3', 'walls', 'checkpoint', 'platforms', 'flyers', 'gap2', 'flat', 'goal'],
-    speed: 1, need: 0.55 },
-  { chunks: ['start', 'enemies1', 'hazard3', 'spiky', 'arcGap', 'flyers', 'platforms', 'checkpoint', 'bigStairs', 'walls', 'hazardIsland', 'spiky2', 'enemies2', 'goal'],
-    speed: 1.15, need: 0.6 },
-  { chunks: ['start', 'enemies2', 'hazard4', 'mover', 'spiky', 'flyers2', 'checkpoint', 'bigStairs', 'gauntletPits', 'mover2', 'hazardIsland', 'checkpoint', 'gauntlet', 'platforms', 'spiky2', 'arcGap', 'goal'],
-    speed: 1.3, need: 0.6 },
+  // level 1 introduces hoppers
+  { chunks: ['start', 'flat', 'gap2', 'stepsUp', 'enemies1', 'frogPond', 'gap3', 'walls', 'checkpoint', 'platforms', 'frogSteps', 'flyers', 'gap2', 'goal'],
+    speed: 1, need: 0.55, newFoe: 'h' },
+  // level 2 introduces shooters
+  { chunks: ['start', 'enemies1', 'hazard3', 'sniper', 'spiky', 'arcGap', 'flyers', 'frogPond', 'checkpoint', 'bigStairs', 'sniperHigh', 'walls', 'hazardIsland', 'spiky2', 'enemies2', 'goal'],
+    speed: 1.15, need: 0.6, newFoe: 'g' },
+  // level 3 introduces chargers
+  { chunks: ['start', 'enemies2', 'boarRun', 'hazard4', 'mover', 'spiky', 'flyers2', 'checkpoint', 'bigStairs', 'sniper', 'gauntletPits', 'mover2', 'boarGap', 'hazardIsland', 'checkpoint', 'gauntlet', 'frogSteps', 'platforms', 'spiky2', 'arcGap', 'goal'],
+    speed: 1.3, need: 0.6, newFoe: 'c' },
 ];
 
 const LEVEL_NAMES = {
