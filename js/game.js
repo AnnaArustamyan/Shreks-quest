@@ -203,10 +203,10 @@
       updatePlayer(dt, true);
       updateWorld(dt);
     }
-    if (mode === 'give') {
+    if (mode === 'give' || mode === 'reject') {
       updateMovers(dt);
       updatePlayer(dt, false);
-      updateGive(dt);
+      if (mode === 'give') updateGive(dt); else updateReject(dt);
     }
     updateCamera(dt);
   }
@@ -353,10 +353,47 @@
     }
 
     if (bubble) { bubble.life -= dt; if (bubble.life <= 0) bubble = null; }
+    updateSad(dt);
+    if (L.rejectCd > 0) L.rejectCd -= dt;
     const g = L.goal, zone = { x: g.x - 20, y: g.y - 30, w: 40, h: 30 };
-    if (overlap(p, zone)) {
-      if (L.got >= L.need) { mode = 'give'; modeT = 0; bouquet = null; bubble = null; }
-      else if (!bubble) { bubble = { text: `${L.need - L.got} MORE FLOWERS!`, life: 2.2 }; Sound.fx.nope(); }
+    if (overlap(p, zone) && !(L.rejectCd > 0)) {
+      if (L.got >= L.need) { mode = 'give'; modeT = 0; bouquet = null; bubble = null; L.sad = false; }
+      else { mode = 'reject'; modeT = 0; bubble = null; bouquet = { x0: p.x + p.w / 2, y0: p.y, t: 0, done: false, few: true }; }
+    }
+  }
+
+  // too few flowers: the bouquet gets dropped, your love bursts into tears
+  function updateReject(dt) {
+    const g = L.goal, p = P;
+    p.face = 1;
+    if (bouquet && !bouquet.done) {
+      bouquet.t += dt / 0.7;
+      if (bouquet.t >= 1) { bouquet.done = true; bubble = { text: `ONLY ${L.got}?!`, life: 1.3 }; Sound.fx.nope(); }
+    } else if (bouquet && modeT > 1.5) {
+      // the bouquet falls to the ground and wilts
+      bouquet.fall = (bouquet.fall || 0) + dt * 90;
+    }
+    if (modeT > 1.5 && !L.sad) {
+      L.sad = true; Sound.fx.sob();
+      bubble = { text: `*SOB* I WANTED ${L.need}!`, life: 2.2 };
+    }
+    if (bubble) bubble.life -= dt;
+    updateSad(dt);
+    if (modeT > 3.4) {
+      mode = 'play'; modeT = 10; bouquet = null; L.rejectCd = 1.5;
+      hurt(false);
+      if (mode === 'play') { P.vx = -220; P.vy = -230; P.inv = 1.4; floater(g.x - 60, g.y - 50, `NEED ${L.need - L.got} MORE`, '#8ab8ff'); }
+    }
+  }
+
+  function updateSad(dt) {
+    if (!L.sad) return;
+    const g = L.goal, ex = g.x - 7, ey = g.y - (other(hero) === 'donkey' ? 18 : 16);
+    L.tearT = (L.tearT || 0) - dt;
+    if (L.tearT <= 0) {
+      L.tearT = mode === 'reject' ? 0.04 : 0.18;
+      const side = Math.random() < 0.5 ? -1 : 1, big = mode === 'reject';
+      parts.push({ x: ex + side * 2, y: ey, vx: side * rand(big ? 25 : 8, big ? 55 : 18), vy: rand(-60, -20), g: 300, life: 0.8, max: 0.8, col: Math.random() < 0.5 ? '#8ad8ff' : '#c8f0ff', s: 2 });
     }
   }
 
@@ -461,6 +498,15 @@
     return wx => Math.round(base - (Math.sin(wx * 0.012 + seed) * amp + Math.sin(wx * 0.031 + seed * 2) * amp * 0.4));
   }
 
+  // passes overhead every 22s, with a little parallax and a bob
+  function drawFlyingOgre(cx) {
+    const k = ((T + 19) % 22) / 9;
+    if (k > 1) return;
+    const x = -140 + k * (VW + 180) - cx * 0.04, y = 26 + Math.sin(T * 1.6) * 6 + k * 10;
+    drawOgre(ctx, x, y, Math.floor(T * 5) % 2);
+    for (let i = 1; i < 6; i++) { ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.fillRect(Math.round(x - i * 12), Math.round(y + 24 + Math.sin(T * 6 + i) * 3), 8, 1); }
+  }
+
   function drawBG(theme, cx) {
     if (theme === 'donkey') {
       bands(['#8fd3e0', '#a3dce0', '#b9e4d9', '#d2ecd0', '#ecefc4', '#f8e8b8'], 0, 170);
@@ -469,6 +515,7 @@
         const span = VW + 160, x = ((i * 97 + T * 5 - cx * 0.1) % span + span) % span - 80, y = 22 + (i * 37) % 60;
         pcircle(ctx, x, y + 3, 9, '#e2f2f2'); pcircle(ctx, x + 12, y, 12, '#ffffff'); pcircle(ctx, x + 26, y + 3, 9, '#ffffff'); ctx.fillStyle = '#e2f2f2'; ctx.fillRect(x - 6, y + 9, 40, 3);
       }
+      drawFlyingOgre(cx);
       hills(0.15, 150, 16, '#a8d494', 1, cx);
       const near = hills(0.35, 172, 12, '#74b26c', 4, cx);
       const sp = 70, off = cx * 0.35;
@@ -489,6 +536,7 @@
     } else {
       bands(['#1a0610', '#2a0814', '#45101c', '#6a1820', '#94261c', '#c4401a'], 0, 175);
       pcircle(ctx, 90, 62, 26, '#a8381a'); pcircle(ctx, 90, 62, 20, '#ff8a3a');
+      drawFlyingOgre(cx);
       // volcanoes
       const vsp = 260, voff = cx * 0.1;
       for (let wx = Math.floor(voff / vsp) * vsp - vsp; wx < voff + VW + vsp; wx += vsp) {
@@ -604,6 +652,7 @@
         ctx.fillStyle = Math.sin(T * 8) > 0 ? '#ff8a2a' : '#ffb02a'; ctx.fillRect(x + 4, m.y + m.h + 1, m.w - 8, 2);
       }
     }
+    if (vis(L.goal.x - 70, 30)) drawGoalSign(L.goal.x - 62 - cx, L.goal.y);
     for (const f of L.flowers) if (!f.taken && vis(f.x)) drawFlower(f, f.x - cx, f.y);
     for (const w of L.treats) if (!w.taken && vis(w.x)) drawTreat(w, w.x - cx, w.y);
 
@@ -611,8 +660,13 @@
     const g = L.goal, pk = other(hero);
     if (vis(g.x - 20, 40)) {
       const hop = partnerHop > 0 ? Math.round(Math.abs(Math.sin(partnerHop * 10)) * 6) : 0;
-      drawHero(ctx, pk, g.x - cx, g.y - hop, -1, { walk: 0, blink: (T + 1.3) % 3.7 < 0.12 });
-      heart(ctx, g.x - cx - 3, g.y - 36 + Math.round(Math.sin(T * 3) * 2), '#ff4a6a');
+      const sob = L.sad ? Math.round(Math.abs(Math.sin(T * (mode === 'reject' ? 14 : 6))) * 1.5) : 0;
+      drawHero(ctx, pk, g.x - cx, g.y - hop + sob, -1, { walk: 0, blink: L.sad || (T + 1.3) % 3.7 < 0.12 });
+      if (L.sad) { // broken heart
+        const hx = g.x - cx - 3, hy = g.y - 36;
+        heart(ctx, hx, hy, '#6a4a78');
+        ctx.fillStyle = OUT; ctx.fillRect(hx + 3, hy, 1, 2); ctx.fillRect(hx + 2, hy + 2, 1, 2); ctx.fillRect(hx + 3, hy + 4, 1, 2);
+      } else heart(ctx, g.x - cx - 3, g.y - 36 + Math.round(Math.sin(T * 3) * 2), '#ff4a6a');
     }
 
     for (const e of L.enemies) if (e.active || vis(e.x)) drawEnemy(e, e.x - cx, e.y);
@@ -623,9 +677,10 @@
     for (const q of parts) { ctx.globalAlpha = clamp(q.life / q.max * 1.5, 0, 1); ctx.fillStyle = q.col; ctx.fillRect(Math.round(q.x - cx), Math.round(q.y), q.s, q.s); }
     ctx.globalAlpha = 1;
 
-    if (bouquet && !bouquet.done) {
-      const k = bouquet.t, x = bouquet.x0 + (g.x - bouquet.x0) * k - cx, y = bouquet.y0 + (g.y - 24 - bouquet.y0) * k - Math.sin(Math.PI * k) * 30;
-      drawBouquet(x, y);
+    if (bouquet) {
+      const k = Math.min(1, bouquet.t), x = bouquet.x0 + (g.x - 10 - bouquet.x0) * k - cx;
+      const y = Math.min(g.y - 8, bouquet.y0 + (g.y - 24 - bouquet.y0) * k - Math.sin(Math.PI * k) * 30 + (bouquet.fall || 0));
+      if (!bouquet.done || bouquet.few) drawBouquet(x, y, bouquet.few);
     }
     if (bubble && bubble.life > 0) speech(g.x - cx, g.y - 40, bubble.text);
     for (const f of floaters) { ctx.globalAlpha = clamp(f.life * 2, 0, 1); txt(f.text, Math.round(f.x - cx), Math.round(f.y), f.col); }
@@ -633,7 +688,24 @@
     drawHUD();
   }
 
-  function drawBouquet(x, y) {
+  function drawGoalSign(x, y) {
+    const ok = L.got >= L.need;
+    x = Math.round(x);
+    ctx.fillStyle = OUT; ctx.fillRect(x + 11, y - 18, 4, 18); ctx.fillStyle = '#8a5a30'; ctx.fillRect(x + 12, y - 18, 2, 18);
+    ctx.fillStyle = OUT; ctx.fillRect(x - 1, y - 33, 28, 17);
+    ctx.fillStyle = ok ? '#5cb85c' : '#e8d8b0'; ctx.fillRect(x, y - 32, 26, 15);
+    drawParts(ctx, [[3, 0, 4, 2, '#ff7aa8'], [1, 2, 8, 4, '#ff7aa8'], [3, 6, 4, 2, '#ff7aa8'], [4, 3, 2, 2, '#ffd34d', 1]], x + 2, y - 29, 10, false);
+    txt(String(L.need), x + 13, y - 28, ok ? '#ffffff' : OUT, 8, 'left', null);
+  }
+
+  function drawBouquet(x, y, few) {
+    if (few) { // a sad, small bunch
+      x = Math.round(x); y = Math.round(y);
+      ctx.fillStyle = '#3e8a44'; ctx.fillRect(x - 1, y, 2, 7);
+      pcircle(ctx, x, y - 2, 2, THEMES[hero].flowerCols[0]);
+      ctx.fillStyle = '#ffffff'; ctx.fillRect(x - 2, y + 4, 5, 2);
+      return;
+    }
     const cols = THEMES[hero].flowerCols;
     x = Math.round(x); y = Math.round(y);
     ctx.fillStyle = '#3e8a44'; ctx.fillRect(x - 1, y, 3, 8);
@@ -779,6 +851,7 @@
     else if (mode === 'intro') drawIntro();
     else if (mode === 'play') drawWorld();
     else if (mode === 'give') drawGive();
+    else if (mode === 'reject') drawWorld();
     else if (mode === 'gameover') drawGameOver();
     else if (mode === 'wedding') drawWedding();
   }

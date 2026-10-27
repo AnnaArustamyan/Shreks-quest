@@ -238,6 +238,14 @@ const Sound = (() => {
         tone({ type: 'sawtooth', f: 520, f2: 290, t: t + k * 0.6 + 0.27, dur: 0.3, vol: 0.07, lp: 1400 });
       }
     },
+    sob() {
+      const t = now();
+      [0, 0.3, 0.6, 1.1, 1.4].forEach((d, i) => {
+        tone({ type: 'triangle', f: 640 - i * 40, f2: 380 - i * 30, t: t + d, dur: 0.22, vol: 0.09, lp: 2200 });
+        noise({ t: t + d, dur: 0.12, vol: 0.05, type: 'bandpass', freq: 1500 });
+      });
+      tone({ type: 'sine', f: 520, f2: 260, t: t + 1.8, dur: 0.8, vol: 0.08 }); // long wail
+    },
     roar() { tone({ type: 'sawtooth', f: 180, f2: 55, dur: 0.75, vol: 0.12, lp: 900 }); noise({ dur: 0.75, vol: 0.25, freq: 1000, freq2: 180 }); },
   };
   // fx calls before the first user gesture are silently ignored

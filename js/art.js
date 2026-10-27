@@ -219,3 +219,33 @@ const THEMES = {
     }),
   },
 };
+
+// ---------- big green ogre flying superhero-style (facing right) ----------
+const OG = { skin: '#8cc152', skinD: '#5f8f34', shirt: '#eadfb4', vest: '#5a3a1e', pants: '#7a5a32', boot: '#3e2a1a', cape: '#d0343e', capeD: '#9a1e2a' };
+function ogreParts(f) {
+  return [
+    // cape flutters behind
+    f ? [3, 2, 17, 5, OG.cape] : [2, 5, 18, 4, OG.cape],
+    f ? [0, 1, 5, 4, OG.capeD] : [0, 7, 4, 4, OG.capeD],
+    [0, 10, 5, 6, OG.boot], [5, 10, 10, 6, OG.pants], [5, 12, 10, 1, '#5e4424', 1],
+    [14, 7, 13, 10, OG.shirt], [16, 7, 8, 10, OG.vest], [14, 14, 13, 2, OG.boot, 1],
+    // arm along the body
+    [18, 16, 8, 3, OG.skin], [26, 16, 3, 3, OG.skinD],
+    // big round head
+    [27, 5, 12, 12, OG.skin], [28, 4, 10, 1, OG.skin], [28, 17, 10, 1, OG.skin],
+    // trumpet ears: stalk + flared tip
+    [29, 1, 2, 4, OG.skin], [28, 0, 4, 2, OG.skinD], [35, 1, 2, 4, OG.skin], [34, 0, 4, 2, OG.skinD],
+    // fist punching forward
+    [39, 6, 4, 4, OG.skin], [37, 9, 3, 2, OG.skin],
+    [31, 8, 2, 1, '#3e5a1e', 1], [35, 8, 2, 1, '#3e5a1e', 1], // brows
+    [31, 9, 2, 2, '#ffffff', 1], [32, 9, 1, 2, '#2a1a10', 1], [35, 9, 2, 2, '#ffffff', 1], [36, 9, 1, 2, '#2a1a10', 1],
+    [33, 11, 2, 2, OG.skinD, 1], // nose
+    [31, 14, 6, 1, '#3e5a1e', 1], [30, 13, 1, 1, '#3e5a1e', 1], [37, 13, 1, 1, '#3e5a1e', 1], // big grin
+    [29, 12, 1, 1, '#b8d878', 1], [38, 12, 1, 1, '#b8d878', 1],
+  ];
+}
+function drawOgre(g, x, y, f, scale = 3) {
+  g.save(); g.translate(Math.round(x), Math.round(y)); g.scale(scale, scale);
+  drawParts(g, ogreParts(f), 0, 0, 44, false);
+  g.restore();
+}
