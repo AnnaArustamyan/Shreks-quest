@@ -218,7 +218,7 @@
     }
     let go = pressed.jump || pressed.start || pressed.action;
     if (tap) {
-      if (tap.y > 182 && Math.abs(tap.x - 200) < 50) go = true;
+      if (tap.y > 196 && Math.abs(tap.x - 200) < 50) go = true;
       else {
         const pick = tap.x < 200 ? 'donkey' : 'dragon';
         if (pick === hero) go = true;
@@ -735,80 +735,53 @@
 
   function shade(a, col = '#0b0614') { ctx.globalAlpha = a; ctx.fillStyle = col; ctx.fillRect(0, 0, VW, VH); ctx.globalAlpha = 1; }
 
-  const PATH = {
-    donkey: { x: 26, col: '#7dd87a', dark: '#2e5a34', tag: 'CHILL & KICKS' },
-    dragon: { x: 214, col: '#ff8a3a', dark: '#6a1e1e', tag: 'FIRE & GLIDE' },
-  };
-  const CARD_W = 160, CARD_Y = 70, CARD_H = 110;
+  const PATH = { donkey: { x: 112, col: '#a6e49a', dark: '#2e5a34' }, dragon: { x: 288, col: '#ffb02a', dark: '#6a1e1e' } };
 
   function drawTitle() {
     drawBG(hero, T * 20);
     const tl = tiles[hero];
     for (let x = 0; x < VW; x += 16) { ctx.drawImage(tl.top, x, 192); ctx.drawImage(tl.fill, x, 208); }
-    shade(0.45);
-    const bob = Math.round(Math.sin(T * 2) * 2), titleCol = hero === 'donkey' ? '#a6e49a' : '#ffb02a';
+    shade(0.22);
+    const bob = Math.round(Math.sin(T * 2) * 2);
     txt("SHREK'S QUEST", VW / 2 + 2, 12 + bob + 2, OUT, 24, 'center', null);
-    txt("SHREK'S QUEST", VW / 2, 12 + bob, titleCol, 24, 'center', null);
+    txt("SHREK'S QUEST", VW / 2, 12 + bob, PATH[hero].col, 24, 'center', null);
     txt('A LOVE STORY IN 3 LEVELS', VW / 2, 42, '#ffffff', 8, 'center');
-    txt('CHOOSE YOUR PATH', VW / 2, 56, '#ffe08a', 8, 'center');
-    drawPathCard('donkey');
-    drawPathCard('dragon');
-
-    const hint = !Sound.running() && Math.floor(T * 1.5) % 2 === 0 ? ['TAP OR PRESS A KEY FOR SOUND', '#ffe08a'] : ['< > PICK PATH    SPACE START', '#d0c8d8'];
-    txt(hint[0], VW / 2, 184, hint[1], 8, 'center');
+    const hint = !Sound.running() && Math.floor(T * 1.5) % 2 === 0 ? ['TAP OR PRESS A KEY FOR SOUND', '#ffe08a'] : ['< > CHOOSE YOUR PATH', '#ffe08a'];
+    txt(hint[0], VW / 2, 54, hint[1], 8, 'center');
+    drawPathHero(other(hero));
+    drawPathHero(hero);
     const blink = Math.floor(T * 2) % 2 === 0;
-    ctx.fillStyle = OUT; ctx.fillRect(140, 196, 120, 20);
-    ctx.fillStyle = PATH[hero].dark; ctx.fillRect(141, 197, 118, 18);
-    ctx.fillStyle = PATH[hero].col; ctx.fillRect(141, 197, 118, 2);
-    txt('START', VW / 2, 202, blink ? '#ffffff' : PATH[hero].col, 8, 'center');
+    ctx.fillStyle = OUT; ctx.fillRect(150, 199, 100, 20);
+    ctx.fillStyle = PATH[hero].dark; ctx.fillRect(151, 200, 98, 18);
+    ctx.fillStyle = PATH[hero].col; ctx.fillRect(151, 200, 98, 2);
+    txt('START', VW / 2, 205, blink ? '#ffffff' : PATH[hero].col, 8, 'center');
   }
 
-  function drawPathCard(k) {
-    const c = PATH[k], sel = k === hero, x = c.x, y = CARD_Y, cx = x + CARD_W / 2;
-    // panel
-    ctx.globalAlpha = sel ? 0.92 : 0.7;
-    ctx.fillStyle = sel ? c.dark : '#120c1c';
-    ctx.fillRect(x, y, CARD_W, CARD_H);
-    ctx.globalAlpha = 1;
+  function drawPathHero(k) {
+    const c = PATH[k], sel = k === hero, cx = c.x, feet = 192;
     if (sel) {
-      // pulsing double frame in the path's colour
-      const pulse = Math.floor(T * 4) % 2 === 0;
-      ctx.fillStyle = pulse ? c.col : '#ffffff';
-      ctx.fillRect(x - 3, y - 3, CARD_W + 6, 2); ctx.fillRect(x - 3, y + CARD_H + 1, CARD_W + 6, 2);
-      ctx.fillRect(x - 3, y - 3, 2, CARD_H + 6); ctx.fillRect(x + CARD_W + 1, y - 3, 2, CARD_H + 6);
-      ctx.fillStyle = pulse ? '#ffffff' : c.col;
-      ctx.fillRect(x, y, CARD_W, 1); ctx.fillRect(x, y + CARD_H - 1, CARD_W, 1); ctx.fillRect(x, y, 1, CARD_H); ctx.fillRect(x + CARD_W - 1, y, 1, CARD_H);
-      // sparkles in the corners
-      [[x + 6, y + 6], [x + CARD_W - 8, y + 6], [x + 6, y + CARD_H - 8], [x + CARD_W - 8, y + CARD_H - 8]].forEach(([sx, sy], i) => {
-        if (Math.floor(T * 3 + i) % 3 === 0) return;
-        ctx.fillStyle = '#ffffff'; ctx.fillRect(sx, sy - 1, 1, 3); ctx.fillRect(sx - 1, sy, 3, 1);
-      });
-      // bouncing arrow above
-      const ab = Math.round(Math.abs(Math.sin(T * 5)) * 3);
-      ctx.fillStyle = OUT; for (let i = 0; i < 6; i++) ctx.fillRect(cx - 6 + i, y - 12 + i + ab, 13 - i * 2, 1);
-      ctx.fillStyle = '#ffffff'; for (let i = 0; i < 5; i++) ctx.fillRect(cx - 5 + i, y - 12 + i + ab, 11 - i * 2, 1);
-    } else {
-      ctx.fillStyle = '#4a4058';
-      ctx.fillRect(x, y, CARD_W, 1); ctx.fillRect(x, y + CARD_H - 1, CARD_W, 1); ctx.fillRect(x, y, 1, CARD_H); ctx.fillRect(x + CARD_W - 1, y, 1, CARD_H);
-    }
-    txt('PATH OF THE', cx, y + 7, sel ? '#ffffff' : '#7a7088', 8, 'center');
-    txt(NAME[k], cx, y + 19, sel ? c.col : '#6a6078', 16, 'center');
-
-    // the hero on a little patch of ground: lit and walking when chosen, a dim shadow otherwise
-    const feet = y + 86;
-    ctx.fillStyle = sel ? 'rgba(255,255,255,.12)' : 'rgba(0,0,0,.25)';
-    ctx.fillRect(cx - 34, feet, 68, 3);
-    if (sel) { // soft glow behind the hero
-      ctx.globalAlpha = 0.18 + 0.08 * Math.sin(T * 4);
-      pcircle(ctx, cx, feet - 24, 30, c.col);
+      // spotlight beaming down onto the chosen hero
+      ctx.fillStyle = 'rgba(255,250,220,0.13)';
+      for (let y = 66; y < feet; y += 2) {
+        const hw = Math.round(14 + (y - 66) * 0.32);
+        ctx.fillRect(cx - hw, y, hw * 2, 2);
+      }
+      ctx.globalAlpha = 0.25 + 0.08 * Math.sin(T * 4);
+      ctx.fillStyle = '#fffbe0';
+      for (let i = 0; i < 4; i++) ctx.fillRect(cx - 40 + i * 4, feet - 2 + (i > 1 ? 1 : 0) - i, 80 - i * 8, 3);
       ctx.globalAlpha = 1;
+      // big bouncing arrow
+      const ab = Math.round(Math.abs(Math.sin(T * 5)) * 4);
+      ctx.fillStyle = OUT; for (let i = 0; i < 8; i++) ctx.fillRect(cx - 8 + i, 64 + i + ab, 17 - i * 2, 1);
+      ctx.fillStyle = '#ffffff'; for (let i = 0; i < 7; i++) ctx.fillRect(cx - 7 + i, 64 + i + ab, 15 - i * 2, 1);
     }
-    const hop = sel ? Math.round(Math.abs(Math.sin(T * 4)) * 4) : 0;
-    ctx.save(); ctx.translate(cx, feet - hop); ctx.scale(2, 2);
-    if (!sel) ctx.globalAlpha = 0.35;
-    drawHero(ctx, k, 0, 0, k === 'donkey' ? 1 : -1, { walk: sel ? Math.floor(T * 6) % 4 : 0, blink: sel ? T % 3 < 0.12 : true });
+    txt('PATH OF THE', cx, 78, sel ? '#ffffff' : 'rgba(255,255,255,.45)', 8, 'center', sel ? OUT : null);
+    txt(NAME[k], cx, 90, sel ? c.col : 'rgba(255,255,255,.4)', 16, 'center', sel ? OUT : null);
+    const scale = sel ? 3 : 2, hop = sel ? Math.round(Math.abs(Math.sin(T * 4)) * 4) : 0;
+    ctx.save(); ctx.translate(cx, feet - hop); ctx.scale(scale, scale);
+    if (!sel) ctx.globalAlpha = 0.4;
+    drawHero(ctx, k, 0, 0, k === 'donkey' ? 1 : -1, { walk: sel ? Math.floor(T * 6) % 4 : 0, blink: sel ? T % 3 < 0.12 : (T + 1) % 3 < 0.12 });
     ctx.restore(); ctx.globalAlpha = 1;
-    txt(c.tag, cx, y + 94, sel ? '#ffffff' : '#5a5068', 8, 'center');
   }
 
   function drawIntro() {
