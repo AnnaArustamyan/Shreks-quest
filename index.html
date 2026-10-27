@@ -2,25 +2,34 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Animated Flowers</title>
-  <meta name="description" content="A little garden that grows at dusk. Tap to plant a flower." />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <title>Petal Quest</title>
+  <meta name="description" content="A tiny pixel platformer: collect flowers for your love across 3 levels, then celebrate the wedding." />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌸</text></svg>" />
-  <style>
-    html, body { margin: 0; height: 100%; overflow: hidden; background: #0b0820; }
-    canvas { display: block; width: 100vw; height: 100vh; cursor: crosshair; touch-action: none; }
-    #hint {
-      position: fixed; left: 50%; top: 28px; transform: translateX(-50%);
-      font: 300 15px/1.4 "Georgia", serif; letter-spacing: .12em; color: rgba(255,240,250,.75);
-      text-shadow: 0 0 12px rgba(255,180,220,.6); pointer-events: none; user-select: none;
-      transition: opacity 2s ease; white-space: nowrap;
-    }
-    #hint.hidden { opacity: 0; }
-  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <canvas id="garden"></canvas>
-  <div id="hint">tap anywhere to plant a flower</div>
-  <script src="flowers.js"></script>
+  <canvas id="game" width="400" height="225"></canvas>
+
+  <button id="mute" aria-label="Toggle sound">♪</button>
+
+  <div id="touch">
+    <div class="pad">
+      <button data-act="left" aria-label="Left">◀</button>
+      <button data-act="right" aria-label="Right">▶</button>
+    </div>
+    <div class="pad">
+      <button data-act="action" aria-label="Action">B</button>
+      <button data-act="jump" aria-label="Jump">A</button>
+    </div>
+  </div>
+
+  <script src="js/audio.js"></script>
+  <script src="js/art.js"></script>
+  <script src="js/levels.js"></script>
+  <script src="js/game.js"></script>
 </body>
 </html>
