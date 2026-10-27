@@ -735,6 +735,7 @@
 
   function shade(a, col = '#0b0614') { ctx.globalAlpha = a; ctx.fillStyle = col; ctx.fillRect(0, 0, VW, VH); ctx.globalAlpha = 1; }
 
+  let heroBuf = null;
   const PATH = { donkey: { x: 112, col: '#a6e49a', dark: '#2e5a34' }, dragon: { x: 288, col: '#ffb02a', dark: '#6a1e1e' } };
 
   function drawTitle() {
@@ -766,12 +767,12 @@
       // spotlight beaming down onto the chosen hero
       ctx.fillStyle = 'rgba(255,250,220,0.13)';
       for (let y = 66; y < feet; y += 2) {
-        const hw = Math.round(14 + (y - 66) * 0.32);
+        const hw = Math.round(12 + (y - 66) * 0.24);
         ctx.fillRect(cx - hw, y, hw * 2, 2);
       }
       ctx.globalAlpha = 0.25 + 0.08 * Math.sin(T * 4);
       ctx.fillStyle = '#fffbe0';
-      for (let i = 0; i < 4; i++) ctx.fillRect(cx - 40 + i * 4, feet - 2 + (i > 1 ? 1 : 0) - i, 80 - i * 8, 3);
+      for (let i = 0; i < 4; i++) ctx.fillRect(cx - 30 + i * 4, feet - 2 + (i > 1 ? 1 : 0) - i, 60 - i * 8, 3);
       ctx.globalAlpha = 1;
       // big bouncing arrow
       const ab = Math.round(Math.abs(Math.sin(T * 5)) * 4);
@@ -780,11 +781,22 @@
     }
     txt('PATH OF THE', cx, 78, sel ? '#ffffff' : 'rgba(255,255,255,.45)', 8, 'center', sel ? OUT : null);
     txt(NAME[k], cx, 90, sel ? c.col : 'rgba(255,255,255,.4)', 16, 'center', sel ? OUT : null);
-    const scale = sel ? 3 : 2, hop = sel ? Math.round(Math.abs(Math.sin(T * 4)) * 4) : 0;
-    ctx.save(); ctx.translate(cx, feet - hop); ctx.scale(scale, scale);
-    if (!sel) ctx.globalAlpha = 0.4;
-    drawHero(ctx, k, 0, 0, k === 'donkey' ? 1 : -1, { walk: sel ? Math.floor(T * 6) % 4 : 0, blink: sel ? T % 3 < 0.12 : (T + 1) % 3 < 0.12 });
-    ctx.restore(); ctx.globalAlpha = 1;
+    const st = { walk: sel ? Math.floor(T * 6) % 4 : 0, blink: sel ? T % 3 < 0.12 : (T + 1) % 3 < 0.12 }, face = k === 'donkey' ? 1 : -1;
+    if (sel) {
+      const hop = Math.round(Math.abs(Math.sin(T * 4)) * 3);
+      ctx.save(); ctx.translate(cx, feet - hop); ctx.scale(2, 2);
+      drawHero(ctx, k, 0, 0, face, st);
+      ctx.restore();
+    } else {
+      // draw at 1x offscreen, then enlarge 1.5x with crisp (nearest-neighbour) pixels
+      if (!heroBuf) { heroBuf = document.createElement('canvas'); heroBuf.width = 40; heroBuf.height = 32; }
+      const b = heroBuf.getContext('2d');
+      b.clearRect(0, 0, 40, 32);
+      drawHero(b, k, 20, 30, face, st);
+      ctx.globalAlpha = 0.45; ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(heroBuf, Math.round(cx - 30), Math.round(feet - 45), 60, 48);
+      ctx.globalAlpha = 1;
+    }
   }
 
   function drawIntro() {
