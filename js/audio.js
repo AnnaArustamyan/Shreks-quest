@@ -4,11 +4,38 @@ const Sound = (() => {
   let muted = false, wantSong = null, song = null, step = 0, nextT = 0, timer = null, crackle = null;
   const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
 
+  let unlockEl = null;
+  // iPhones mute Web Audio when the silent switch is on, unless the page is
+  // also playing a media element; a looping silent clip puts it in "playback" mode.
+  function iosUnlock() {
+    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
+    if (unlockEl) return;
+    const rate = 8000, n = 800, buf = new ArrayBuffer(44 + n), v = new DataView(buf);
+    const str = (o, s) => [...s].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)));
+    str(0, 'RIFF'); v.setUint32(4, 36 + n, true); str(8, 'WAVEfmt '); v.setUint32(16, 16, true);
+    v.setUint16(20, 1, true); v.setUint16(22, 1, true); v.setUint32(24, rate, true); v.setUint32(28, rate, true);
+    v.setUint16(32, 1, true); v.setUint16(34, 8, true); str(36, 'data'); v.setUint32(40, n, true);
+    for (let i = 0; i < n; i++) v.setUint8(44 + i, 128);
+    unlockEl = new Audio(URL.createObjectURL(new Blob([buf], { type: 'audio/wav' })));
+    unlockEl.loop = true; unlockEl.setAttribute('playsinline', '');
+    const p = unlockEl.play();
+    if (p && p.catch) p.catch(() => { unlockEl = null; }); // retry on the next gesture
+  }
+
+  // Called on every user gesture: creates the context once, then keeps resuming
+  // it until the browser lets it run.
   function init() {
-    if (ac) { if (ac.state === 'suspended') ac.resume(); return; }
+    if (ac) {
+      if (ac.state !== 'running') { ac.resume(); iosUnlock(); }
+      return;
+    }
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
     ac = new AC();
+    iosUnlock();
+    if (ac.state !== 'running') ac.resume();
+    // a one-sample blip, played inside the gesture, unlocks older Safari
+    const blip = ac.createBufferSource(); blip.buffer = ac.createBuffer(1, 1, 22050); blip.connect(ac.destination); blip.start(0);
     master = ac.createGain(); master.gain.value = muted ? 0 : 0.8; master.connect(ac.destination);
     sfxBus = ac.createGain(); sfxBus.gain.value = 0.7; sfxBus.connect(master);
     noiseBuf = ac.createBuffer(1, ac.sampleRate, ac.sampleRate);
@@ -222,5 +249,6 @@ const Sound = (() => {
     return muted;
   }
 
-  return { init, play, stop, fx, toggleMute };
+  const running = () => !!ac && ac.state === 'running';
+  return { init, play, stop, fx, toggleMute, running };
 })();

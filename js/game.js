@@ -28,8 +28,9 @@
     KeyX: 'action', KeyJ: 'action', KeyK: 'action', ShiftLeft: 'action', ShiftRight: 'action',
     Enter: 'start', KeyP: 'pause', Escape: 'pause', KeyM: 'mute',
   };
+  // Browsers only allow sound after a real gesture; phones count touchend/click, not pointerdown.
+  ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown'].forEach(n => addEventListener(n, () => Sound.init(), true));
   addEventListener('keydown', e => {
-    Sound.init();
     const a = KEYMAP[e.code];
     if (!a) return;
     e.preventDefault();
@@ -39,18 +40,17 @@
   addEventListener('keyup', e => { const a = KEYMAP[e.code]; if (a) keys[a] = false; });
   document.querySelectorAll('#touch button').forEach(btn => {
     const a = btn.dataset.act;
-    const down = e => { e.preventDefault(); Sound.init(); keys[a] = true; pressed[a] = true; btn.classList.add('on'); };
+    const down = e => { e.preventDefault(); keys[a] = true; pressed[a] = true; btn.classList.add('on'); };
     const up = e => { e.preventDefault(); keys[a] = false; btn.classList.remove('on'); };
     btn.addEventListener('pointerdown', down);
     ['pointerup', 'pointercancel', 'pointerleave'].forEach(n => btn.addEventListener(n, up));
   });
   cv.addEventListener('pointerdown', e => {
-    Sound.init();
     const r = cv.getBoundingClientRect();
     tap = { x: (e.clientX - r.left) / r.width * VW, y: (e.clientY - r.top) / r.height * VH };
   });
   const muteBtn = document.getElementById('mute');
-  const toggleMute = () => { Sound.init(); muteBtn.classList.toggle('off', Sound.toggleMute()); };
+  const toggleMute = () => { muteBtn.classList.toggle('off', Sound.toggleMute()); };
   muteBtn.addEventListener('click', e => { e.stopPropagation(); toggleMute(); muteBtn.blur(); });
   const anyGo = () => pressed.jump || pressed.start || pressed.action || !!tap;
 
@@ -302,7 +302,7 @@
       e.t += dt;
       if (e.fly) {
         e.x = e.x0 + Math.sin(e.t * 1.3 + e.ph) * 30;
-        e.y = e.y0 + Math.sin(e.t * 3.1 + e.ph) * 6;
+        e.y = e.y0 + Math.sin(e.t * 2 + e.ph) * 6;
         e.face = Math.cos(e.t * 1.3 + e.ph) >= 0 ? 1 : -1;
       } else {
         e.vx = e.dir * e.speed;
@@ -478,12 +478,13 @@
         ctx.fillStyle = '#6b4a2a'; ctx.fillRect(sx - 1, gy - r, 3, r + 2);
         pcircle(ctx, sx, gy - r - 4, r, '#4f9a5a'); pcircle(ctx, sx - 2, gy - r - 6, r - 3, '#62b06a');
       }
-      if (butterflies.length === 0) for (let i = 0; i < 5; i++) butterflies.push({ x: rand(0, VW), y: rand(60, 160), ph: rand(0, 6), col: ['#ff7aa8', '#ffd34d', '#ffffff'][i % 3] });
+      if (butterflies.length === 0) for (let i = 0; i < 5; i++) butterflies.push({ x: rand(0, VW), y: rand(60, 160), sp: rand(4, 8), ph: rand(0, 6), col: ['#ff7aa8', '#ffd34d', '#ffffff'][i % 3] });
       for (const b of butterflies) {
-        b.x = ((b.x + 0.25 + Math.sin(T + b.ph) * 0.3) % (VW + 20) + VW + 20) % (VW + 20) - 10;
-        const y = Math.round(b.y + Math.sin(T * 1.7 + b.ph) * 10), f = Math.floor(T * 8 + b.ph) % 2;
-        ctx.fillStyle = b.col; ctx.fillRect(Math.round(b.x) - 2, y - (f ? 1 : 0), 2, f ? 2 : 1); ctx.fillRect(Math.round(b.x) + 1, y - (f ? 1 : 0), 2, f ? 2 : 1);
-        ctx.fillStyle = OUT; ctx.fillRect(Math.round(b.x), y, 1, 2);
+        // position comes from the clock, so speed is the same on 60Hz and 120Hz screens
+        const span = VW + 20, x = Math.round(((b.x + T * b.sp + Math.sin(T * 0.4 + b.ph) * 8) % span + span) % span - 10);
+        const y = Math.round(b.y + Math.sin(T * 0.7 + b.ph) * 8), f = Math.floor(T * 2.5 + b.ph) % 2;
+        ctx.fillStyle = b.col; ctx.fillRect(x - 2, y - (f ? 1 : 0), 2, f ? 2 : 1); ctx.fillRect(x + 1, y - (f ? 1 : 0), 2, f ? 2 : 1);
+        ctx.fillStyle = OUT; ctx.fillRect(x, y, 1, 2);
       }
     } else {
       bands(['#1a0610', '#2a0814', '#45101c', '#6a1820', '#94261c', '#c4401a'], 0, 175);
@@ -514,9 +515,9 @@
       hills(0.45, 182, 8, '#2a0a10', 2, cx);
       if (embers.length === 0) for (let i = 0; i < 40; i++) embers.push({ x: rand(0, VW), y: rand(0, VH), sp: rand(10, 30), ph: rand(0, 6) });
       for (const e of embers) {
-        e.y -= e.sp * STEP; if (e.y < -4) { e.y = VH + 4; e.x = rand(0, VW); }
+        const ey = ((e.y - T * e.sp) % (VH + 8) + VH + 8) % (VH + 8) - 4;
         ctx.fillStyle = Math.sin(T * 5 + e.ph) > 0 ? '#ffb02a' : '#ff5a1a';
-        ctx.fillRect(Math.round(e.x + Math.sin(T + e.ph) * 6), Math.round(e.y), 1 + (e.ph > 4 ? 1 : 0), 1 + (e.ph > 4 ? 1 : 0));
+        ctx.fillRect(Math.round(e.x + Math.sin(T + e.ph) * 6), Math.round(ey), 1 + (e.ph > 4 ? 1 : 0), 1 + (e.ph > 4 ? 1 : 0));
       }
     }
   }
@@ -571,7 +572,7 @@
   }
 
   function drawEnemy(e, x, y) {
-    const E = ENEMY[e.kind], f = Math.floor(e.t * (E.fly ? 12 : 6)) % 2;
+    const E = ENEMY[e.kind], f = Math.floor(e.t * (E.fly ? 8 : 6)) % 2;
     const pr = E.parts(f);
     if (e.dead) {
       ctx.save(); ctx.translate(Math.round(x), Math.round(y + e.h)); ctx.scale(1, -1);
@@ -689,6 +690,7 @@
     ctx.fillStyle = hero === 'donkey' ? '#5cb85c' : '#e0405a'; ctx.fillRect(151, 197, 98, 18);
     txt('START', VW / 2, 202, blink ? '#ffffff' : '#ffe8f0', 8, 'center');
     txt('< > PICK   SPACE START', VW / 2, 92, '#d0c8d8', 8, 'center');
+    if (!Sound.running() && Math.floor(T * 1.5) % 2 === 0) txt('TAP OR PRESS A KEY FOR SOUND', VW / 2, 182, '#ffe08a', 8, 'center');
   }
 
   function drawIntro() {
